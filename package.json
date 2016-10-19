@@ -1,5 +1,4 @@
 {
-  "private": true,
   "name": "qiniu4js",
   "version": "0.0.1",
   "description": "Maybe is the best js sdk for qiniu",
@@ -24,8 +23,7 @@
     "typescript": "^2.0.3"
   },
   "scripts": {
-    "build": "node tools/build",
-    "prepublish": "npm run build"
+    "build": "node tools/build"
   },
   "dependencies": {}
 }
