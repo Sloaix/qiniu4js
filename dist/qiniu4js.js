@@ -593,7 +593,7 @@ var Uploader = (function () {
         enumerable: true,
         configurable: true
     });
-    Uploader.UPLOAD_URL = 'http://up.qiniu.com/';
+    Uploader.UPLOAD_URL = 'http://upload.qiniu.com/';
     return Uploader;
 }());
 
