@@ -210,6 +210,10 @@ var Uploader = (function () {
          * 处理文件
          */
         this.handleFiles = function () {
+            //如果没有选中文件就返回
+            if (_this.fileInput.files.length == 0) {
+                return;
+            }
             //上传前的准备
             _this.readyForUpload();
             //是否中断任务
