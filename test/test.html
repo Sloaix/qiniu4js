@@ -13,6 +13,7 @@
 	window.onload = function () {
 		var qiniu = new Qiniu.UploaderBuilder()
 				.debug(true)
+				.accept(['.png', '.jpg'])
 				.interceptor({
 					onIntercept: function (task) {
 						return task.file.size > 1024 * 1024;

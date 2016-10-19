@@ -279,10 +279,10 @@ var Uploader = (function () {
             for (var _i = 0, _a = this.accept; _i < _a.length; _i++) {
                 var value = _a[_i];
                 acceptValue += value;
-                acceptValue += '|';
+                acceptValue += ',';
             }
-            if (acceptValue.endsWith('|')) {
-                acceptValue.slice(1, -1);
+            if (acceptValue.endsWith(',')) {
+                acceptValue = acceptValue.substring(0, acceptValue.length - 1);
             }
             this.fileInput.accept = acceptValue;
             Debug.d("accept\u7C7B\u578B " + acceptValue);
@@ -656,7 +656,7 @@ var UploaderBuilder = (function () {
     };
     /**
      * 接受上传的文件类型
-     * @param accept 数组形式例如:['.gif','.png','video/*']
+     * @param accept 数组形式例如:['.png','video/*']
      *
      * 详细配置见http://www.w3schools.com/tags/att_input_accept.asp
      *

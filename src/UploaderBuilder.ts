@@ -73,7 +73,7 @@ class UploaderBuilder {
 
     /**
      * 接受上传的文件类型
-     * @param accept 数组形式例如:['.gif','.png','video/*']
+     * @param accept 数组形式例如:['.png','video/*']
      *
      * 详细配置见http://www.w3schools.com/tags/att_input_accept.asp
      *
