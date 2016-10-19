@@ -1,0 +1,46 @@
+<!doctype html>
+<html class="no-js" lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title><%= title %></title>
+  <meta name="description" content="Babel Starter Kit is a project template for authoring and publishing JavaScript libraries">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="<%= base %>/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,300,400,700italic">
+  <link rel="stylesheet" href="<%= base %>/main.css">
+</head>
+<body>
+  <%- include('header'); %>
+  <div class="content">
+    <div class="content-left">
+      <%- include('nav'); %>
+    </div>
+    <div class="content-right">
+      <%- content %>
+      <% if (path !== '/') { %>
+      <div id="disqus_thread"></div>
+      <script>
+         var disqus_config = function () {
+           this.page.url = 'https://www.kriasoft.com/babel-starter-kit<%= path %>';
+           this.page.identifier = '<%= id %>';
+         };
+        (function(d) {
+          var s = d.createElement('script');
+          s.src = '//kriasoft.disqus.com/embed.js';
+          s.setAttribute('data-timestamp', +new Date());
+          (d.head || d.body).appendChild(s);
+        })(document);
+      </script>
+      <% } %>
+    </div>
+  </div>
+  <script src="<%= base %>/main.js"></script>
+  <script>
+    window.ga=function(){ga.q.push(arguments)};ga.q=[];ga.l=+new Date;
+    ga('create','UA-33821884-1','auto');ga('send','pageview')
+  </script>
+  <script id="dsq-count-scr" src="https://kriasoft.disqus.com/count.js" async></script>
+  <script src="https://www.google-analytics.com/analytics.js" async defer></script>
+</body>
+</html>
