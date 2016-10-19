@@ -56,7 +56,7 @@ let uploader = new Qiniu.UploaderBuilder()
 	.multiple(true)//是否支持多文件选中，默认true
 	.accept(['.gif','.png','video/*'])//过滤文件，默认无，详细配置见http://www.w3schools.com/tags/att_input_accept.asp
 	.tokenShare(true)//在一次上传队列中，是否分享token,如果为false每上传一个文件都需要请求一次Token，默认true
-	.tokenFunc(function (setToken) {
+	.tokenFunc(function (setToken,task) {
 	    //token获取函数，token获取完成后，必须调用`setToken(token);`不然上传任务不会执行。
 		setTimeout(function () {
 			setToken("token");

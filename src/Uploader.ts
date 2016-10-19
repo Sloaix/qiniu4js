@@ -298,7 +298,7 @@ class Uploader {
                 task.startDate = new Date();
                 let formData: FormData = Uploader.createFormData(task, this.token);
                 xhr.send(formData);
-            });
+            }, task);
         }
     }
 
