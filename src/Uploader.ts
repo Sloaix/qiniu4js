@@ -82,11 +82,11 @@ class Uploader {
 
             for (let value: string of this.accept) {
                 acceptValue += value;
-                acceptValue += '|';
+                acceptValue += ',';
             }
 
-            if (acceptValue.endsWith('|')) {
-                acceptValue.slice(1, -1);
+            if (acceptValue.endsWith(',')) {
+                acceptValue = acceptValue.substring(0, acceptValue.length - 1);
             }
             this.fileInput.accept = acceptValue;
             debug.d(`accept类型 ${acceptValue}`);
