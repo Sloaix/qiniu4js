@@ -1,0 +1,32 @@
+{
+  "private": true,
+  "name": "qiniu4js",
+  "version": "0.0.1",
+  "description": "Maybe is the best js sdk for qiniu",
+  "homepage": "https://www.gihub.com/lsxiao/qiniu4js",
+  "repository": "lsxiao/qiniu4js",
+  "author": "lsxiao <faith.epiphone@qq.com>",
+  "license": "MIT",
+  "keywords": [
+    "qiniu",
+    "js",
+    "sdk"
+  ],
+  "main": "qiniu4js.js",
+  "jsnext:main": "qiniu4js.es.js",
+  "bugs": {
+    "url": "https://github.com/lsxiao/qiniu4js/issues"
+  },
+  "devDependencies": {
+    "del": "^2.2.2",
+    "rollup": "^0.36.3",
+    "rollup-plugin-typescript": "^0.8.1",
+    "typescript": "^2.0.3"
+  },
+  "scripts": {
+    "build": "node tools/build",
+    "prepublish": "npm run build"
+  },
+  "dependencies": {}
+}
+
