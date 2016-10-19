@@ -31,7 +31,7 @@ sudo npm install qiniu4js --save
 
 ### 浏览器
 ```html
-    <script src="qiniu4js.min.js"></script>
+    <script src="qiniu4js.js"></script>
 ```
 ### es6
 ```javascript
