@@ -105,7 +105,7 @@ let uploader = new Qiniu.UploaderBuilder()
         },onTaskRetry(task) {
         	//开始重传
         	
-        },onFinish(){
+        },onFinish(tasks){
             //所有任务结束后回调，注意，结束不等于都成功，该函数会在所有HTTP上传请求响应后回调(包括重传请求)。
             
 		}}

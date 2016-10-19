@@ -35,32 +35,10 @@
 					}, 1000)
 				})
 				.listener({
-					onReady: function (tasks) {
-						console.log('onReady');
-					},
-					onStart(){
-						console.log('onStart');
-					},
-					onGetKey(task){
+					onTaskGetKey(task){
 						console.log("onTaskGetKey");
 						return "test.png";
 					},
-					onProgress: function (task) {
-						console.log(task.progress);
-					},
-					onTaskFinished(task){
-						console.log("onFileUploaded");
-						console.log(task);
-					},
-					onTaskQueueFinished(){
-						console.log("onFinish");
-					},
-					onFailed(task) {
-						console.log("onTaskFail");
-					},
-					onRetry(task) {
-						console.log("onTaskRetry");
-					}
 				}).build();
 		button = document.getElementById('button');
 		button.addEventListener("click", function () {
