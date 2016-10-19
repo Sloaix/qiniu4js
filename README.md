@@ -127,6 +127,8 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 0.0.4 (2016-10-19)
+    - 修复了一个关于accept选项的bug。
 
 - 0.0.3 (2016-10-19)
     - 任务拦截器实现。
