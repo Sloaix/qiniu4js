@@ -249,7 +249,7 @@ class Uploader {
             task.progress = 100;
         };
 
-        xhr.open('POST', Uploader.UPLOAD_URL, true);
+        xhr.open('POST', Uploader.UPLOAD_URL += ((/\?/).test(Uploader.UPLOAD_URL) ? "&" : "?") + (new Date()).getTime(), true);
 
         xhr.onreadystatechange = ()=> {
             if (xhr.readyState == XMLHttpRequest.DONE) {
