@@ -1,5 +1,6 @@
 import {Listener} from "./Listener";
 import Uploader from "./Uploader";
+import Interceptor from "./Interceptor";
 
 /**
  * UploaderBuilder
@@ -17,7 +18,18 @@ class UploaderBuilder {
     private _listener: Listener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
+    private _interceptors: Interceptor[] = [];//任务拦截器
     private _isDebug: boolean = false;//
+
+    /**
+     * 添加一个拦截器
+     * @param interceptor
+     * @returns {UploaderBuilder}
+     */
+    public interceptor(interceptor: Interceptor): UploaderBuilder {
+        this._interceptors.push(interceptor);
+        return this;
+    }
 
     /**
      * 上传失败后的重传尝试次数
@@ -178,6 +190,10 @@ class UploaderBuilder {
 
     get getIsDebug(): boolean {
         return this._isDebug;
+    }
+
+    get getInterceptors(): Interceptor[] {
+        return this._interceptors;
     }
 
     public build(): Uploader {
