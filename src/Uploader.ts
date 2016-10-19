@@ -2,6 +2,7 @@ import UploaderBuilder from "./UploaderBuilder";
 import {Listener, SimpleListener} from "./Listener";
 import Task from "./Task";
 import debug from "./Debug";
+import Interceptor from "./Interceptor";
 
 
 class Uploader {
@@ -24,6 +25,7 @@ class Uploader {
     private _listener: Listener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
+    private _interceptors: Interceptor[];//任务拦截器
 
     constructor(builder: UploaderBuilder) {
         this._retry = builder.getRetry;
@@ -37,6 +39,8 @@ class Uploader {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleListener(), builder.getListener);
+        this._interceptors = builder.getInterceptors;
+
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;
         debug.enable = builder.getIsDebug;
 
@@ -75,10 +79,11 @@ class Uploader {
         //文件类型
         if (this.accept && this.accept.length != 0) {
             let acceptValue = '';
-            this.accept.forEach((value)=> {
+
+            for (let value: string of this.accept) {
                 acceptValue += value;
                 acceptValue += '|';
-            });
+            }
 
             if (acceptValue.endsWith('|')) {
                 acceptValue.slice(1, -1);
@@ -110,6 +115,29 @@ class Uploader {
 
         //上传前的准备
         this.readyForUpload();
+
+
+        //是否中断任务
+        let isInterrupt: Boolean = false;
+
+        //任务拦截器过滤
+        for (let task: Task of this.taskQueue) {
+            for (let interceptor: Interceptor of this.interceptors) {
+                if (interceptor.onIntercept(task)) {
+                    //从任务队列中去除任务
+                    this.taskQueue.splice(this.taskQueue.indexOf(task), 1);
+                }
+                if (interceptor.onInterrupt(task)) {
+                    isInterrupt = true;
+                    break;
+                }
+            }
+        }
+
+        if (isInterrupt) {
+            debug.w("任务拦截器中断了任务队列");
+            return;
+        }
 
         //回调函数函数
         this.listener.onReady(this.taskQueue);
@@ -175,9 +203,9 @@ class Uploader {
      * 直传文件
      */
     private uploadFilesDirect() {
-        this.taskQueue.forEach((task)=> {
+        for (let task: Task of this.taskQueue) {
             this.uploadFile(task);
-        });
+        }
     }
 
     /**
@@ -192,11 +220,11 @@ class Uploader {
      * @returns {boolean}
      */
     private isAllTaskFinish() {
-        this.taskQueue.forEach((task)=> {
+        for (let task: Task of this.taskQueue) {
             if (!task.isFinish) {
                 return false;
             }
-        });
+        }
         return true;
     }
 
@@ -377,6 +405,10 @@ class Uploader {
 
     get fileInputId(): string {
         return this._fileInputId;
+    }
+
+    get interceptors(): Interceptor[] {
+        return this._interceptors;
     }
 }
 

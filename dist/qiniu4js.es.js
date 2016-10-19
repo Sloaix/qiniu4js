@@ -206,6 +206,27 @@ var Uploader = (function () {
         this.handleFiles = function () {
             //上传前的准备
             _this.readyForUpload();
+            //是否中断任务
+            var isInterrupt = false;
+            //任务拦截器过滤
+            for (var _i = 0, _a = _this.taskQueue; _i < _a.length; _i++) {
+                var task = _a[_i];
+                for (var _b = 0, _c = _this.interceptors; _b < _c.length; _b++) {
+                    var interceptor = _c[_b];
+                    if (interceptor.onIntercept(task)) {
+                        //从任务队列中去除任务
+                        _this.taskQueue.splice(_this.taskQueue.indexOf(task), 1);
+                    }
+                    if (interceptor.onInterrupt(task)) {
+                        isInterrupt = true;
+                        break;
+                    }
+                }
+            }
+            if (isInterrupt) {
+                Debug.w("任务拦截器中断了任务队列");
+                return;
+            }
             //回调函数函数
             _this.listener.onReady(_this.taskQueue);
             //自动上传
@@ -224,6 +245,7 @@ var Uploader = (function () {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleListener(), builder.getListener);
+        this._interceptors = builder.getInterceptors;
         this._fileInputId = this.FILE_INPUT_EL_ID + "_" + new Date().getTime();
         Debug.enable = builder.getIsDebug;
         this.validate();
@@ -253,16 +275,17 @@ var Uploader = (function () {
         }
         //文件类型
         if (this.accept && this.accept.length != 0) {
-            var acceptValue_1 = '';
-            this.accept.forEach(function (value) {
-                acceptValue_1 += value;
-                acceptValue_1 += '|';
-            });
-            if (acceptValue_1.endsWith('|')) {
-                acceptValue_1.slice(1, -1);
+            var acceptValue = '';
+            for (var _i = 0, _a = this.accept; _i < _a.length; _i++) {
+                var value = _a[_i];
+                acceptValue += value;
+                acceptValue += '|';
             }
-            this.fileInput.accept = acceptValue_1;
-            Debug.d("accept\u7C7B\u578B " + acceptValue_1);
+            if (acceptValue.endsWith('|')) {
+                acceptValue.slice(1, -1);
+            }
+            this.fileInput.accept = acceptValue;
+            Debug.d("accept\u7C7B\u578B " + acceptValue);
         }
         //将input元素添加到body子节点的末尾
         document.body.appendChild(this.fileInput);
@@ -324,10 +347,10 @@ var Uploader = (function () {
      * 直传文件
      */
     Uploader.prototype.uploadFilesDirect = function () {
-        var _this = this;
-        this.taskQueue.forEach(function (task) {
-            _this.uploadFile(task);
-        });
+        for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
+            var task = _a[_i];
+            this.uploadFile(task);
+        }
     };
     /**
      * 分块上传文件
@@ -340,11 +363,12 @@ var Uploader = (function () {
      * @returns {boolean}
      */
     Uploader.prototype.isAllTaskFinish = function () {
-        this.taskQueue.forEach(function (task) {
+        for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
+            var task = _a[_i];
             if (!task.isFinish) {
                 return false;
             }
-        });
+        }
         return true;
     };
     /**
@@ -556,6 +580,13 @@ var Uploader = (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Uploader.prototype, "interceptors", {
+        get: function () {
+            return this._interceptors;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Uploader.UPLOAD_URL = 'http://up.qiniu.com/';
     return Uploader;
 }());
@@ -575,8 +606,18 @@ var UploaderBuilder = (function () {
         this._compress = 100; //图片压缩质量
         this._crop = []; //裁剪参数[x:20,y:20,width:20,height:20]
         this._tokenShare = true; //分享token,如果为false,每一次HTTP请求都需要新获取Token
+        this._interceptors = []; //任务拦截器
         this._isDebug = false; //
     }
+    /**
+     * 添加一个拦截器
+     * @param interceptor
+     * @returns {UploaderBuilder}
+     */
+    UploaderBuilder.prototype.interceptor = function (interceptor) {
+        this._interceptors.push(interceptor);
+        return this;
+    };
     /**
      * 上传失败后的重传尝试次数
      * @param retry 默认0次，不尝试次重传
@@ -759,6 +800,13 @@ var UploaderBuilder = (function () {
     Object.defineProperty(UploaderBuilder.prototype, "getIsDebug", {
         get: function () {
             return this._isDebug;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UploaderBuilder.prototype, "getInterceptors", {
+        get: function () {
+            return this._interceptors;
         },
         enumerable: true,
         configurable: true

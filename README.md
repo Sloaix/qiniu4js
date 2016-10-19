@@ -11,6 +11,7 @@ qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 - [x] 多文件上传
 - [x] token共享
 - [x] 自动重传
+- [x] 任务拦截器
 - [x] 文件过滤
 - [x] 多实例(可以创建多个上传实例,互不影响)
 
@@ -61,6 +62,23 @@ let uploader = new Qiniu.UploaderBuilder()
 			setToken("token");
 		}, 1000);
 	})
+	//任务拦截器
+    .interceptor({
+        //拦截任务,返回true，任务将会从任务队列中剔除，不会被上传
+    	onIntercept: function (task) {
+    		return task.file.size > 1024 * 1024;
+    	},
+    	//中断任务，返回true，任务队列将会在这里中断，不会执行上传操作。
+    	onInterrupt: function (task) {
+    		if (this.onIntercept(task)) {
+    			alert("请上传小于1m的文件");
+    			return true;
+    		}
+    		else {
+    			return false;
+    		}
+    	},
+    }   
 	.listener({
 		onReady(tasks) {
 			//选择上传文件确定后,该生命周期函数会被回调。
