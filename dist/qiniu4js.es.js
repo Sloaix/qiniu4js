@@ -434,7 +434,7 @@ var Uploader = (function () {
                 task.startDate = new Date();
                 var formData = Uploader.createFormData(task, _this.token);
                 xhr.send(formData);
-            });
+            }, task);
         }
     };
     /**
