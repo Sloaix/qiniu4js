@@ -7,7 +7,7 @@ import Interceptor from "./Interceptor";
 
 class Uploader {
     private FILE_INPUT_EL_ID: string = 'qiniu4js-input';
-    public static UPLOAD_URL = 'http://up.qiniu.com/';
+    public static UPLOAD_URL = 'http://upload.qiniu.com/';
     private _fileInputId: string;
     private _fileInput: HTMLInputElement;//input 元素
     private _token: string;//token
