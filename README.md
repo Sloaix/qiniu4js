@@ -79,6 +79,8 @@ let uploader = new Qiniu.UploaderBuilder()
     		}
     	},
     }   
+    //你可以添加多个任务拦截器
+    .interceptor({...})
 	.listener({
 		onReady(tasks) {
 			//选择上传文件确定后,该生命周期函数会被回调。
