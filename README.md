@@ -108,7 +108,7 @@ button.addEventListener("click", function () {
 
 ## 版本说明
 
-- 0.0.1 (2016-10-19)
+- 0.0.2 (2016-10-19)
     - 基本功能的实现。
 
 
