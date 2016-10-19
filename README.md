@@ -127,6 +127,8 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 0.0.7 (2016-10-19)
+    - 更换上传域名为upload.qiniu.com 
 - 0.0.6 (2016-10-19)
     - 绕过缓存，避免每次都上传同样的文件。
 
