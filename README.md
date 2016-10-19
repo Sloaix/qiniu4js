@@ -127,6 +127,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 0.0.6 (2016-10-19)
+    - 绕过缓存，避免每次都上传同样的文件。
+
 - 0.0.5 (2016-10-19)
     - tokenFunc(setToken,task)增加task参数
     

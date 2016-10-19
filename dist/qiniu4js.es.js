@@ -389,7 +389,7 @@ var Uploader = (function () {
         xhr.upload.onload = function () {
             task.progress = 100;
         };
-        xhr.open('POST', Uploader.UPLOAD_URL, true);
+        xhr.open('POST', Uploader.UPLOAD_URL += ((/\?/).test(Uploader.UPLOAD_URL) ? "&" : "?") + (new Date()).getTime(), true);
         xhr.onreadystatechange = function () {
             if (xhr.readyState == XMLHttpRequest.DONE) {
                 task.endDate = new Date();
