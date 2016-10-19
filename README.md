@@ -127,6 +127,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 0.0.5 (2016-10-19)
+    - tokenFunc(setToken,task)增加task参数
+    
 - 0.0.4 (2016-10-19)
     - 修复了一个关于accept选项的bug。
 
