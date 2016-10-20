@@ -86,7 +86,7 @@ class ChunkUploadPattern implements IUploadPattern {
                         }
                         //将之前上传的所有块组合成文件
                         else {
-                            let encodedKey = btoa(encodeURIComponent(task.key));
+                            let encodedKey = task.key ? btoa(encodeURIComponent(task.key)) : null;
                             let url = this.getMakeFileUrl(task.file.size, encodedKey);
                             //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
                             let ctxListString = '';
@@ -112,6 +112,7 @@ class ChunkUploadPattern implements IUploadPattern {
                                         let result: any = JSON.parse(xhr.responseText);
                                         task.isSuccess = true;
                                         this.uploader.listener.onTaskSuccess(task);
+                                        task.endDate = new Date();
                                     }
                                     else {
                                         if (this.retryTask(task)) {
@@ -124,6 +125,7 @@ class ChunkUploadPattern implements IUploadPattern {
                                             task.error = task.error ? task.error : xhr.response;
                                             task.isSuccess = false;
                                             task.isFinish = true;
+                                            task.endDate = new Date();
                                             this.uploader.listener.onTaskFail(task);
                                         }
                                     }
@@ -188,7 +190,12 @@ class ChunkUploadPattern implements IUploadPattern {
      * @returns {string}
      */
     private  getMakeFileUrl(fileSize: number, encodedKey: string): string {
-        return `${this.uploader.domain}/mkfile/${fileSize}/key/${encodedKey}`;
+        if (encodedKey) {
+            return `${this.uploader.domain}/mkfile/${fileSize}/key/${encodedKey}`;
+        }
+        else {
+            return `${this.uploader.domain}/mkfile/${fileSize}`;
+        }
     }
 
 }

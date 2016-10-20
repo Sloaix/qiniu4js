@@ -663,11 +663,11 @@ var DirectUploadPattern = (function () {
         xhr.open('POST', url, true);
         xhr.onreadystatechange = function () {
             if (xhr.readyState == XMLHttpRequest.DONE) {
-                task.endDate = new Date();
                 if (xhr.status == 200 && xhr.responseText != '') {
                     task.result = JSON$1.parse(xhr.responseText);
                     task.isSuccess = true;
                     task.isFinish = true;
+                    task.endDate = new Date();
                     _this.uploader.listener.onTaskSuccess(task);
                 }
                 else {
@@ -681,6 +681,7 @@ var DirectUploadPattern = (function () {
                         task.error = task.error ? task.error : xhr.response;
                         task.isSuccess = false;
                         task.isFinish = true;
+                        task.endDate = new Date();
                         _this.uploader.listener.onTaskFail(task);
                     }
                 }
@@ -810,7 +811,7 @@ var ChunkUploadPattern = (function () {
                             _this.uploadChunk(nextBlock.chunks[0], nextBlock, task, token);
                         }
                         else {
-                            var encodedKey = btoa(encodeURIComponent(task.key));
+                            var encodedKey = task.key ? btoa(encodeURIComponent(task.key)) : null;
                             var url_1 = _this.getMakeFileUrl(task.file.size, encodedKey);
                             //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
                             var ctxListString = '';
@@ -834,6 +835,7 @@ var ChunkUploadPattern = (function () {
                                         var result_1 = JSON.parse(xhr_1.responseText);
                                         task.isSuccess = true;
                                         _this.uploader.listener.onTaskSuccess(task);
+                                        task.endDate = new Date();
                                     }
                                     else {
                                         if (_this.retryTask(task)) {
@@ -846,6 +848,7 @@ var ChunkUploadPattern = (function () {
                                             task.error = task.error ? task.error : xhr_1.response;
                                             task.isSuccess = false;
                                             task.isFinish = true;
+                                            task.endDate = new Date();
                                             _this.uploader.listener.onTaskFail(task);
                                         }
                                     }
@@ -903,7 +906,12 @@ var ChunkUploadPattern = (function () {
      * @returns {string}
      */
     ChunkUploadPattern.prototype.getMakeFileUrl = function (fileSize, encodedKey) {
-        return this.uploader.domain + "/mkfile/" + fileSize + "/key/" + encodedKey;
+        if (encodedKey) {
+            return this.uploader.domain + "/mkfile/" + fileSize + "/key/" + encodedKey;
+        }
+        else {
+            return this.uploader.domain + "/mkfile/" + fileSize;
+        }
     };
     return ChunkUploadPattern;
 }());
