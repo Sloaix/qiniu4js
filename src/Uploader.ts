@@ -271,7 +271,7 @@ class Uploader {
                     }
                     else {
                         debug.w(`${task.file.name}上传失败`);
-                        task.error = xhr.response;
+                        task.error = JSON.parse(xhr.responseText);
                         task.isSuccess = false;
                         task.isFinish = true;
                         this.listener.onTaskFail(task);
