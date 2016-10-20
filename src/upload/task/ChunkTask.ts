@@ -5,7 +5,6 @@ import Task from "./DirectTask";
 class ChunkTask extends Task {
     //分块
     private _blocks: Block[] = [];
-    private _lastBlock: Block;//最后一次上传的block
 
     /**
      * 构造函数
@@ -41,8 +40,12 @@ class ChunkTask extends Task {
         return this._blocks;
     }
 
-    get lastBlock(): Block {
-        return this._lastBlock;
+    get totalChunkCount(): number {
+        let count = 0;
+        for (let block: Block of this._blocks) {
+            count += block.chunks.length;
+        }
+        return count;
     }
 }
 

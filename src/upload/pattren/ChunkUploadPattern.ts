@@ -48,6 +48,10 @@ class ChunkUploadPattern implements IUploadPattern {
     private uploadChunk(chunk: Chunk, block: Block, task: ChunkTask, token: string, ctx?: string, nextHost?: string) {
         let chunkIndex: number = block.chunks.indexOf(chunk);
         let blockIndex: number = task.blocks.indexOf(block);
+        let prevBlocksSize: number = 0;
+        for (let i: number = 0; i < blockIndex; i++) {
+            prevBlocksSize += task.blocks[i].data.size;
+        }
 
         let xhr: XMLHttpRequest = new XMLHttpRequest();
         /**
@@ -60,6 +64,20 @@ class ChunkUploadPattern implements IUploadPattern {
         xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
         xhr.setRequestHeader('Content-Type', 'application/octet-stream');//设置contentType
         xhr.setRequestHeader('Authorization', `UpToken ${token}`);//添加token验证头
+
+        //上传中
+        xhr.upload.onprogress = (e: ProgressEvent)=> {
+            if (e.lengthComputable) {
+                task.progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
+                this.uploader.listener.onTaskProgress(task);
+            }
+        };
+
+        //上传完成
+        xhr.upload.onload = ()=> {
+            task.progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
+        };
+
 
         xhr.onreadystatechange = ()=> {
             if (xhr.readyState == XMLHttpRequest.DONE) {
@@ -111,8 +129,9 @@ class ChunkUploadPattern implements IUploadPattern {
                                     if (xhr.status == 200 && xhr.responseText != '') {
                                         let result: any = JSON.parse(xhr.responseText);
                                         task.isSuccess = true;
-                                        this.uploader.listener.onTaskSuccess(task);
                                         task.endDate = new Date();
+                                        task.progress = 100;
+                                        this.uploader.listener.onTaskSuccess(task);
                                     }
                                     else {
                                         if (this.retryTask(task)) {

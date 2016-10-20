@@ -29,12 +29,15 @@
 				//					},
 				//				})
 				.tokenFunc(function (setToken) {
-					var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:4gYodimGYCKOQmRPsiWeiB9ACfw=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3Njk3ODU4OX0=";
+					var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:z5iV3j76y4DNsgzbjPXRd1YqWBs=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3Njk4MzczMH0=";
 					setTimeout(function () {
 						setToken(token);
 					}, 1000)
 				})
 				.listener({
+					onTaskProgress(task){
+						console.log(task.progress);
+					},
 					onTaskGetKey(task){
 //						console.log("onTaskGetKey");
 //						return "test.png";

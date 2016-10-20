@@ -187,9 +187,14 @@ var ChunkTask = (function (_super) {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(ChunkTask.prototype, "lastBlock", {
+    Object.defineProperty(ChunkTask.prototype, "totalChunkCount", {
         get: function () {
-            return this._lastBlock;
+            var count = 0;
+            for (var _i = 0, _a = this._blocks; _i < _a.length; _i++) {
+                var block = _a[_i];
+                count += block.chunks.length;
+            }
+            return count;
         },
         enumerable: true,
         configurable: true
@@ -784,6 +789,10 @@ var ChunkUploadPattern = (function () {
         var _this = this;
         var chunkIndex = block.chunks.indexOf(chunk);
         var blockIndex = task.blocks.indexOf(block);
+        var prevBlocksSize = 0;
+        for (var i = 0; i < blockIndex; i++) {
+            prevBlocksSize += task.blocks[i].data.size;
+        }
         var xhr = new XMLHttpRequest();
         /**
          * 根据index进行不同的上传策略，因为第一个chunk是随着创建block的时候附带上传的。
@@ -793,6 +802,17 @@ var ChunkUploadPattern = (function () {
         xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
         xhr.setRequestHeader('Content-Type', 'application/octet-stream'); //设置contentType
         xhr.setRequestHeader('Authorization', "UpToken " + token); //添加token验证头
+        //上传中
+        xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+                task.progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
+                _this.uploader.listener.onTaskProgress(task);
+            }
+        };
+        //上传完成
+        xhr.upload.onload = function () {
+            task.progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
+        };
         xhr.onreadystatechange = function () {
             if (xhr.readyState == XMLHttpRequest.DONE) {
                 if (xhr.status == 200 && xhr.responseText != '') {
@@ -840,8 +860,9 @@ var ChunkUploadPattern = (function () {
                                     if (xhr_1.status == 200 && xhr_1.responseText != '') {
                                         var result_1 = JSON.parse(xhr_1.responseText);
                                         task.isSuccess = true;
-                                        _this.uploader.listener.onTaskSuccess(task);
                                         task.endDate = new Date();
+                                        task.progress = 100;
+                                        _this.uploader.listener.onTaskSuccess(task);
                                     }
                                     else {
                                         if (_this.retryTask(task)) {
