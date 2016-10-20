@@ -51,6 +51,7 @@ sudo npm install qiniu4js --save
 //构建uploader实例
 let uploader = new Qiniu.UploaderBuilder()
 	.debug(false)//开启debug，默认false
+	.domain("http://img.yourdomain.com")//默认为http://upload.qiniu.com
 	.retry(0)//设置重传次数，默认0，不重传
 	.size(1024*1024)//分片大小，最多为4MB,单位为字节,默认1MB
 	.chunk(true)//是否分块上传，默认true，当chunk=true并且文件大于4MB才会进行分块上传
