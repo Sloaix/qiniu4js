@@ -1,25 +1,41 @@
-import {Listener} from "./Listener";
 import Uploader from "./Uploader";
-import Interceptor from "./Interceptor";
+import Interceptor from "./interceptor/UploadInterceptor";
+import UploadListener from "./hook/UploadListener";
 
 /**
  * UploaderBuilder
  *
  */
 class UploaderBuilder {
+    public static MAX_CHUNK_SIZE = 4 * 1024 * 1024;//分片最大值
+    public static BLOCK_SIZE = UploaderBuilder.MAX_CHUNK_SIZE;//分块大小，只有大于这个数才需要分块
+    public static UPLOAD_URL = 'http://upload.qiniu.com';
+
     private _retry: number = 0;//最大重试次数
-    private _size: number = 4 * 1024 * 1024;//分块大小,单位字节,默认4mb
-    private _chunk: boolean = false;//分块上传
+    private _domain: string = UploaderBuilder.UPLOAD_URL;//上传域名
+    private _size: number = 1024 * 1024;//分片大小,单位字节,上限4m,不能为0
+    private _chunk: boolean = true;//分块上传
     private _auto: boolean = true;//自动上传,每次选择文件后
     private _multiple: boolean = true;//是否支持多文件
     private _accept: string[] = [];//接受的文件类型
     private _compress: number = 100;//图片压缩质量
     private _crop: number[] = [];//裁剪参数[x:20,y:20,width:20,height:20]
-    private _listener: Listener;//监听器
+    private _listener: UploadListener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[] = [];//任务拦截器
     private _isDebug: boolean = false;//
+
+
+    /**
+     * 设置上传的域名,默认是http://upload.qiniu.com/
+     * @param domain
+     * @returns {UploaderBuilder}
+     */
+    public domain(domain: string): UploaderBuilder {
+        this._domain = domain.endsWith('/') ? domain.substring(0, domain.length - 1) : domain;
+        return this;
+    }
 
     /**
      * 添加一个拦截器
@@ -42,12 +58,12 @@ class UploaderBuilder {
     }
 
     /**
-     *
+     * 设置分片大小
      * @param size 分块大小,单位字节,默认4*1024*1024字节(4mb)
      * @returns {UploaderBuilder}
      */
     private size(size: number): UploaderBuilder {
-        this._size = size;
+        this._size = Math.min(Math.max(size, 1), UploaderBuilder.MAX_CHUNK_SIZE);
         return this;
     }
 
@@ -109,7 +125,7 @@ class UploaderBuilder {
      * @param listener
      * @returns {UploaderBuilder}
      */
-    public listener(listener: Listener): UploaderBuilder {
+    public listener(listener: UploadListener): UploaderBuilder {
         this._listener = listener;
         return this;
     }
@@ -172,7 +188,7 @@ class UploaderBuilder {
         return this._crop;
     }
 
-    get getListener(): Listener {
+    get getListener(): UploadListener {
         return this._listener;
     }
 
@@ -194,6 +210,10 @@ class UploaderBuilder {
 
     get getInterceptors(): Interceptor[] {
         return this._interceptors;
+    }
+
+    get getDomain(): string {
+        return this._domain;
     }
 
     public build(): Uploader {

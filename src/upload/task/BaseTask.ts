@@ -1,18 +1,18 @@
 /**
  * 上传任务
  */
-class Task {
-    private _file: File;
-    private _retry: Number = 0;//已重试次数
-    private _createDate: Date;//创建时间
-    private _startDate: Date;//开始时间
-    private _endDate: Date;//结束时间
-    private _key: String;//key文件名
-    private _progress: Number = 0;//任务进度,最大100
-    private _isSuccess: Boolean = false;//是否上传成功
-    private _result: Object;
-    private _error: any;
-    private _isFinish: boolean = false;//是否结束
+abstract class BaseTask {
+    protected _file: File;
+    protected _retry: Number = 0;//已重试次数
+    protected _createDate: Date;//创建时间
+    protected _startDate: Date;//开始时间
+    protected _endDate: Date;//结束时间
+    protected _key: String;//key文件名
+    protected _progress: Number = 0;//任务进度,最大100
+    protected _isSuccess: Boolean = false;//是否上传成功
+    protected _isFinish: boolean = false;//是否结束
+    protected _result: Object;
+    protected _error: any;
 
     constructor(file: File) {
         this._file = file;
@@ -110,4 +110,4 @@ class Task {
     }
 }
 
-export default Task;
+export default BaseTask;

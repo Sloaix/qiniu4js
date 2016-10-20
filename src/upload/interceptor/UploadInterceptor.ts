@@ -1,7 +1,7 @@
 /**
- * 任务拦截器
+ * 上传任务拦截器
  */
-interface Interceptor {
+interface UploadInterceptor {
     /**
      * 是否拦截此Task,拦截后此Task不再上传
      * @param Task 返回true拦截，false放行。
@@ -15,4 +15,4 @@ interface Interceptor {
 }
 
 
-export default Interceptor;
+export default UploadInterceptor;
