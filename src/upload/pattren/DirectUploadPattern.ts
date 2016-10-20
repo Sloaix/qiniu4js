@@ -36,11 +36,11 @@ class DirectUploadPattern implements IUploadPattern {
 
         xhr.onreadystatechange = ()=> {
             if (xhr.readyState == XMLHttpRequest.DONE) {
-                task.endDate = new Date();
                 if (xhr.status == 200 && xhr.responseText != '') {
                     task.result = JSON.parse(xhr.responseText);
                     task.isSuccess = true;
                     task.isFinish = true;
+                    task.endDate = new Date();
                     this.uploader.listener.onTaskSuccess(task);
                 }
                 else {
@@ -54,6 +54,7 @@ class DirectUploadPattern implements IUploadPattern {
                         task.error = task.error ? task.error : xhr.response;
                         task.isSuccess = false;
                         task.isFinish = true;
+                        task.endDate = new Date();
                         this.uploader.listener.onTaskFail(task);
                     }
                 }
