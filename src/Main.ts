@@ -1,4 +1,3 @@
-import Uploader from "./Uploader";
-import UploaderBuilder from "./UploaderBuilder";
-
+import Uploader from "./upload/Uploader";
+import UploaderBuilder from "./upload/UploaderBuilder";
 export  {Uploader, UploaderBuilder};
