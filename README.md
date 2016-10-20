@@ -8,6 +8,7 @@ qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 ## 已完成
 
 - [x] 文件直传
+- [x] 分块上传
 - [x] 多文件上传
 - [x] token共享
 - [x] 自动重传
@@ -17,7 +18,6 @@ qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
 ## 待完成
 
-- [ ] 分块上传
 - [ ] 图片裁剪
 - [ ] 图片质量压缩
 - [ ] 使用七牛API进行图片处理
@@ -52,6 +52,8 @@ sudo npm install qiniu4js --save
 let uploader = new Qiniu.UploaderBuilder()
 	.debug(false)//开启debug，默认false
 	.retry(0)//设置重传次数，默认0，不重传
+	.size(1024*1024)//分片大小，最多为4MB,单位为字节,默认1MB
+	.chunk(true)//是否分块上传，默认true，当chunk=true并且文件大于4MB才会进行分块上传
 	.auto(true)//选中文件后立即上传，默认true
 	.multiple(true)//是否支持多文件选中，默认true
 	.accept(['.gif','.png','video/*'])//过滤文件，默认无，详细配置见http://www.w3schools.com/tags/att_input_accept.asp
@@ -127,6 +129,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 0.0.9 (2016-10-21)
+    - 分块上传，自定义上传域名
+
 - 0.0.8 (2016-10-19)
     - fix bug,当没有选中任何文件的时候，会触发上传函数。
 
