@@ -2,7 +2,6 @@ import IUploadPattern from "./IUploadPattern";
 import Uploader from "../Uploader";
 import DirectTask from "../task/DirectTask";
 import debug from "../../util/Debug";
-import JSON from "../../util/JSON";
 /**
  * 直接上传
  */
@@ -50,8 +49,12 @@ class DirectUploadPattern implements IUploadPattern {
                     }
                     else {
                         debug.w(`${task.file.name}上传失败`);
-                        task.error = JSON.parse(xhr.responseText);
-                        task.error = task.error ? task.error : xhr.response;
+                        try {
+                            task.error = JSON.parse(xhr.responseText);
+                        }
+                        catch (error: Error) {
+                            task.error = xhr.response;
+                        }
                         task.isSuccess = false;
                         task.isFinish = true;
                         task.endDate = new Date();
