@@ -17,6 +17,7 @@ qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 - [x] 多实例(可以创建多个上传实例,互不影响)
 
 ## 待完成
+- [ ] 完善文档
 - [ ] 自定义变量
 - [ ] 图片裁剪
 - [ ] 图片质量压缩
@@ -101,7 +102,8 @@ let uploader = new Qiniu.UploaderBuilder()
 			
 		},onTaskSuccess(task){
 			//一个任务上传成功后回调
-			
+			console.log(task.result.key);//文件的key
+			console.log(task.result.hash);//文件hash
 		},onTaskFail(task) {
         	//一个任务在经历重传后依然失败后回调此函数
         	

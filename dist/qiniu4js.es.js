@@ -624,22 +624,6 @@ var SimpleUploadListener = (function () {
     return SimpleUploadListener;
 }());
 
-var JSON$1 = (function () {
-    function JSON() {
-    }
-    JSON.parse = function (str) {
-        var object = null;
-        try {
-            object = JSON.parse(str);
-        }
-        catch (e) {
-            return false;
-        }
-        return object;
-    };
-    return JSON;
-}());
-
 /**
  * 直接上传
  */
@@ -669,7 +653,7 @@ var DirectUploadPattern = (function () {
         xhr.onreadystatechange = function () {
             if (xhr.readyState == XMLHttpRequest.DONE) {
                 if (xhr.status == 200 && xhr.responseText != '') {
-                    task.result = JSON$1.parse(xhr.responseText);
+                    task.result = JSON.parse(xhr.responseText);
                     task.isSuccess = true;
                     task.isFinish = true;
                     task.endDate = new Date();
@@ -682,8 +666,12 @@ var DirectUploadPattern = (function () {
                     }
                     else {
                         Debug.w(task.file.name + "\u4E0A\u4F20\u5931\u8D25");
-                        task.error = JSON$1.parse(xhr.responseText);
-                        task.error = task.error ? task.error : xhr.response;
+                        try {
+                            task.error = JSON.parse(xhr.responseText);
+                        }
+                        catch (error) {
+                            task.error = xhr.response;
+                        }
                         task.isSuccess = false;
                         task.isFinish = true;
                         task.endDate = new Date();
