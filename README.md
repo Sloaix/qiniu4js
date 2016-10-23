@@ -36,23 +36,29 @@ sudo npm install qiniu4js --save
 ### 浏览器
 ```html
     <script src="qiniu4js.js"></script>
+    <script>
+        var uploader = new Qiniu.UploaderBuilder().build();
+    </script>
 ```
 ### es6
 ```javascript
-    import {UploaderBuilder} from 'Qiniu'
+    import {UploaderBuilder,Uploader} from 'qiniu4js';
+    let uploader = new UploaderBuilder().build();
 ```
 
 ### CommonJS
 ```javascript
-    {UploaderBuilder} =  require('Qiniu')
+    var Qiniu =  require('qiniu4js');
+    var uploader = new Qiniu.UploaderBuilder().build();
 ```
 
 ## 使用方法
 
 
 ```javascript
+//es6
 //构建uploader实例
-let uploader = new Qiniu.UploaderBuilder()
+let uploader = new UploaderBuilder()
 	.debug(false)//开启debug，默认false
 	.domain("http://img.yourdomain.com")//默认为http://upload.qiniu.com
 	.retry(0)//设置重传次数，默认0，不重传
