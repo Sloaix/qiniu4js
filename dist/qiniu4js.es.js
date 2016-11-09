@@ -4,6 +4,21 @@ function __extends(d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 }
 
+
+
+
+
+
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator.throw(value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments)).next());
+    });
+}
+
 /**
  * 上传任务
  */
@@ -320,8 +335,8 @@ var UploaderBuilder = (function () {
         this._auto = true; //自动上传,每次选择文件后
         this._multiple = true; //是否支持多文件
         this._accept = []; //接受的文件类型
-        this._compress = 100; //图片压缩质量
-        this._crop = []; //裁剪参数[x:20,y:20,width:20,height:20]
+        this._compress = 1; //图片压缩质量
+        this._scale = []; //缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
         this._tokenShare = true; //分享token,如果为false,每一次HTTP请求都需要新获取Token
         this._interceptors = []; //任务拦截器
         this._isDebug = false; //
@@ -394,11 +409,21 @@ var UploaderBuilder = (function () {
     };
     /**
      * 图片质量压缩,只在上传的文件是图片的时候有效
-     * @param compress 0-100,默认100,不压缩
+     * @param compress 0-1,默认1,不压缩
      * @returns {UploaderBuilder}
      */
     UploaderBuilder.prototype.compress = function (compress) {
-        this._compress = compress;
+        //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
+        this._compress = Math.max(Math.min(compress, 1), 0) * 0.95;
+        return this;
+    };
+    /**
+     * 图片缩放
+     * @returns {UploaderBuilder}
+     * @param scale
+     */
+    UploaderBuilder.prototype.scale = function (scale) {
+        this._scale = scale;
         return this;
     };
     /**
@@ -488,9 +513,9 @@ var UploaderBuilder = (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(UploaderBuilder.prototype, "getCrop", {
+    Object.defineProperty(UploaderBuilder.prototype, "getScale", {
         get: function () {
-            return this._crop;
+            return this._scale;
         },
         enumerable: true,
         configurable: true
@@ -639,13 +664,19 @@ var DirectUploadPattern = (function () {
         //上传中
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
-                task.progress = Math.round((e.loaded * 100) / e.total);
-                _this.uploader.listener.onTaskProgress(task);
+                var progress = Math.round((e.loaded * 100) / e.total);
+                if (task.progress != progress) {
+                    task.progress = progress;
+                    _this.uploader.listener.onTaskProgress(task);
+                }
             }
         };
         //上传完成
         xhr.upload.onload = function () {
-            task.progress = 100;
+            if (task.progress != 100) {
+                task.progress = 100;
+                _this.uploader.listener.onTaskProgress(task);
+            }
         };
         var url = this.uploader.domain;
         url += ((/\?/).test(this.uploader.domain) ? "&" : "?") + (new Date()).getTime();
@@ -787,13 +818,20 @@ var ChunkUploadPattern = (function () {
         //上传中
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
-                task.progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
-                _this.uploader.listener.onTaskProgress(task);
+                var progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
+                if (task.progress != progress) {
+                    task.progress = progress;
+                    _this.uploader.listener.onTaskProgress(task);
+                }
             }
         };
         //上传完成
         xhr.upload.onload = function () {
-            task.progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
+            var progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
+            if (task.progress != progress) {
+                task.progress = progress;
+                _this.uploader.listener.onTaskProgress(task);
+            }
         };
         xhr.onreadystatechange = function () {
             if (xhr.readyState == XMLHttpRequest.DONE) {
@@ -931,6 +969,7 @@ var Uploader = (function () {
         this.FILE_INPUT_EL_ID = 'qiniu4js-input';
         this._taskQueue = []; //任务队列
         this._tasking = false; //任务执行中
+        this._scale = []; //缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
         /**
          * 处理文件
          */
@@ -939,8 +978,8 @@ var Uploader = (function () {
             if (_this.fileInput.files.length == 0) {
                 return;
             }
-            //上传前的准备
-            _this.readyForUpload();
+            //生成task
+            _this.generateTask();
             //是否中断任务
             var isInterrupt = false;
             //任务拦截器过滤
@@ -948,11 +987,16 @@ var Uploader = (function () {
                 var task = _a[_i];
                 for (var _b = 0, _c = _this.interceptors; _b < _c.length; _b++) {
                     var interceptor = _c[_b];
+                    //拦截生效
                     if (interceptor.onIntercept(task)) {
                         //从任务队列中去除任务
                         _this.taskQueue.splice(_this.taskQueue.indexOf(task), 1);
+                        Debug.d("任务拦截器拦截了任务:");
+                        Debug.d(task);
                     }
+                    //打断生效
                     if (interceptor.onInterrupt(task)) {
+                        //将打断标志位设为true
                         isInterrupt = true;
                         break;
                     }
@@ -964,10 +1008,14 @@ var Uploader = (function () {
             }
             //回调函数函数
             _this.listener.onReady(_this.taskQueue);
-            //自动上传
-            if (_this.auto) {
-                _this.start();
-            }
+            //处理图片
+            _this.handleImages().then(function (file) {
+                //自动上传
+                if (_this.auto) {
+                    Debug.d("开始自动上传");
+                    _this.start();
+                }
+            });
         };
         this._retry = builder.getRetry;
         this._size = builder.getSize;
@@ -976,7 +1024,7 @@ var Uploader = (function () {
         this._multiple = builder.getMultiple;
         this._accept = builder.getAccept;
         this._compress = builder.getCompress;
-        this._crop = builder.getCrop;
+        this._scale = builder.getScale;
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
@@ -984,7 +1032,7 @@ var Uploader = (function () {
         this._domain = builder.getDomain;
         this._fileInputId = this.FILE_INPUT_EL_ID + "_" + new Date().getTime();
         Debug.enable = builder.getIsDebug;
-        this.validate();
+        this.validateOptions();
         this.init();
     }
     /**
@@ -1041,15 +1089,16 @@ var Uploader = (function () {
     /**
      * 上传完成或者失败后,对本次上传任务进行清扫
      */
-    Uploader.prototype.clear = function () {
+    Uploader.prototype.resetUploader = function () {
         this.taskQueue.length = 0;
         this._token = null;
+        Debug.d("uploader已重置");
     };
     /**
-     * 上传前的准备工作
+     * 生成task
      */
-    Uploader.prototype.readyForUpload = function () {
-        this.clear();
+    Uploader.prototype.generateTask = function () {
+        this.resetUploader();
         var files = this.fileInput.files;
         //遍历files 创建上传任务
         for (var i = 0; i < this.fileInput.files.length; i++) {
@@ -1066,9 +1115,73 @@ var Uploader = (function () {
             this.taskQueue.push(task);
         }
     };
-    Uploader.prototype.validate = function () {
+    /**
+     * 处理图片-缩放-质量压缩
+     */
+    Uploader.prototype.handleImages = function () {
+        return __awaiter(this, void 0, Promise, function* () {
+            var promises = [];
+            var _loop_1 = function(task) {
+                if (!task.file.type.match('image.*')) {
+                    return "continue";
+                }
+                Debug.d(task.file.name + " \u7684\u5927\u5C0F:" + task.file.size / 1024 + "kb");
+                var canvas = document.createElement('canvas');
+                var img = new Image();
+                var ctx = canvas.getContext('2d');
+                img.src = URL.createObjectURL(task.file);
+                var _this = this_1;
+                var promise = new Promise(function (resolve) {
+                    img.onload = function () {
+                        var imgW = img.width;
+                        var imgH = img.height;
+                        var scaleW = _this.scale[0];
+                        var scaleH = _this.scale[1];
+                        if (scaleW <= 0 && scaleH > 0) {
+                            canvas.width = imgW / imgH * scaleH;
+                            canvas.height = scaleH;
+                        }
+                        else if (scaleH <= 0 && scaleW > 0) {
+                            canvas.width = scaleW;
+                            canvas.height = imgH / imgW * scaleW;
+                        }
+                        else if (scaleW > 0 && scaleH > 0) {
+                            canvas.width = scaleW;
+                            canvas.height = scaleH;
+                        }
+                        else {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                        }
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        canvas.toBlob(function (blob) {
+                            resolve(blob);
+                            Debug.d(task.file.name + " \u538B\u7F29\u540E\u7684\u5927\u5C0F:" + blob.size / 1024 + "kb");
+                        }, "image/jpeg", _this.compress);
+                    };
+                }).then(function (blob) {
+                    blob.name = task.file.name;
+                    task.file = blob;
+                });
+                promises.push(promise);
+            };
+            var this_1 = this;
+            for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
+                var task = _a[_i];
+                _loop_1(task);
+            }
+            return Promise.all(promises);
+        });
+    };
+    /**
+     * 检验选项合法性
+     */
+    Uploader.prototype.validateOptions = function () {
         if (!this.tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
+        }
+        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2) {
+            throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度');
         }
     };
     /**
@@ -1160,9 +1273,9 @@ var Uploader = (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Uploader.prototype, "crop", {
+    Object.defineProperty(Uploader.prototype, "scale", {
         get: function () {
-            return this._crop;
+            return this._scale;
         },
         enumerable: true,
         configurable: true

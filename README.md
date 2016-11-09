@@ -17,12 +17,12 @@ ps.目前仍处于快速迭代阶段(稳定版本尚未发布)，不建议用于
 - [x] 任务拦截器
 - [x] 文件过滤
 - [x] 多实例(可以创建多个上传实例,互不影响)
+- [x] 图片缩放
+- [x] 图片质量压缩
 
 ## 待完成
 - [ ] 完善文档
 - [ ] 自定义变量
-- [ ] 图片裁剪
-- [ ] 图片质量压缩
 - [ ] 使用七牛API进行图片处理
 
 ## 安装
@@ -62,6 +62,8 @@ let uploader = new UploaderBuilder()
 	.debug(false)//开启debug，默认false
 	.domain("http://img.yourdomain.com")//默认为http://upload.qiniu.com
 	.retry(0)//设置重传次数，默认0，不重传
+	.compress(0.5)//默认为1,范围0-1
+	.scale([200,0])第一个参数是宽度，第二个是高度,[200,0],限定高度，宽度等比缩放.[0,100]限定宽度,高度等比缩放.[200,100]固定长宽
 	.size(1024*1024)//分片大小，最多为4MB,单位为字节,默认1MB
 	.chunk(true)//是否分块上传，默认true，当chunk=true并且文件大于4MB才会进行分块上传
 	.auto(true)//选中文件后立即上传，默认true
@@ -140,6 +142,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 0.0.11 (2016-11-9)
+    - 图片质量压缩和宽高缩放,修复progress在分块上传的时候相同值可能会多次重复出现的问题。
+    
 - 0.0.10 (2016-10-21)
     - 修复JSON parse失败导致的task.result为false的问题。
     

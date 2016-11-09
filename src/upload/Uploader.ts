@@ -27,7 +27,7 @@ class Uploader {
     private _multiple: boolean;//是否支持多文件
     private _accept: string[];//接受的文件类型
     private _compress: number;//图片压缩质量
-    private _crop: number[];//裁剪参数[x:20,y:20,width:20,height:20]
+    private _scale: number[] = [];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
@@ -42,7 +42,7 @@ class Uploader {
         this._multiple = builder.getMultiple;
         this._accept = builder.getAccept;
         this._compress = builder.getCompress;
-        this._crop = builder.getCrop;
+        this._scale = builder.getScale;
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
@@ -51,7 +51,7 @@ class Uploader {
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;
         debug.enable = builder.getIsDebug;
 
-        this.validate();
+        this.validateOptions();
 
         this.init();
     }
@@ -122,9 +122,10 @@ class Uploader {
     /**
      * 上传完成或者失败后,对本次上传任务进行清扫
      */
-    private clear(): void {
+    private resetUploader(): void {
         this.taskQueue.length = 0;
         this._token = null;
+        debug.d("uploader已重置");
     }
 
     /**
@@ -136,9 +137,8 @@ class Uploader {
             return;
         }
 
-        //上传前的准备
-        this.readyForUpload();
-
+        //生成task
+        this.generateTask();
 
         //是否中断任务
         let isInterrupt: Boolean = false;
@@ -146,11 +146,16 @@ class Uploader {
         //任务拦截器过滤
         for (let task: BaseTask of this.taskQueue) {
             for (let interceptor: Interceptor of this.interceptors) {
+                //拦截生效
                 if (interceptor.onIntercept(task)) {
                     //从任务队列中去除任务
                     this.taskQueue.splice(this.taskQueue.indexOf(task), 1);
+                    debug.d("任务拦截器拦截了任务:");
+                    debug.d(task);
                 }
+                //打断生效
                 if (interceptor.onInterrupt(task)) {
+                    //将打断标志位设为true
                     isInterrupt = true;
                     break;
                 }
@@ -165,19 +170,26 @@ class Uploader {
         //回调函数函数
         this.listener.onReady(this.taskQueue);
 
-        //自动上传
-        if (this.auto) {
-            this.start();
-        }
+
+        //处理图片
+        this.handleImages().then((file)=> {
+            //自动上传
+            if (this.auto) {
+                debug.d("开始自动上传");
+                this.start();
+            }
+        });
     };
 
 
     /**
-     * 上传前的准备工作
+     * 生成task
      */
-    private readyForUpload() {
-        this.clear();
+    private generateTask() {
+        this.resetUploader();
+
         let files: FileList = this.fileInput.files;
+
         //遍历files 创建上传任务
         for (let i: number = 0; i < this.fileInput.files.length; i++) {
             let file: File = files[i];
@@ -195,9 +207,76 @@ class Uploader {
         }
     }
 
-    private  validate(): void {
+    /**
+     * 处理图片-缩放-质量压缩
+     */
+    private async handleImages(): Promise {
+        let promises: Promise[] = [];
+        for (let task: BaseTask of this.taskQueue) {
+            if (!task.file.type.match('image.*')) {
+                continue;
+            }
+            debug.d(`${task.file.name} 的大小:${task.file.size / 1024}kb`);
+
+            let canvas: HTMLCanvasElement = <HTMLCanvasElement> document.createElement('canvas');
+
+            let img: HTMLImageElement = new Image();
+            let ctx: CanvasRenderingContext2D = <CanvasRenderingContext2D>canvas.getContext('2d');
+            img.src = URL.createObjectURL(task.file);
+
+            let _this = this;
+            let promise: Promise = new Promise<Blob>((resolve) => {
+                img.onload = function () {
+
+                    let imgW = img.width;
+                    let imgH = img.height;
+
+                    let scaleW = _this.scale[0];
+                    let scaleH = _this.scale[1];
+
+                    if (scaleW <= 0 && scaleH > 0) {
+                        canvas.width = imgW / imgH * scaleH;
+                        canvas.height = scaleH;
+                    }
+                    else if (scaleH <= 0 && scaleW > 0) {
+                        canvas.width = scaleW;
+                        canvas.height = imgH / imgW * scaleW;
+                    }
+                    else if (scaleW > 0 && scaleH > 0) {
+                        canvas.width = scaleW;
+                        canvas.height = scaleH;
+                    }
+                    else {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    }
+
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob((blob: Blob)=> {
+                        resolve(blob);
+                        debug.d(`${task.file.name} 压缩后的大小:${blob.size / 1024}kb`)
+                    }, "image/jpeg", _this.compress);
+                }
+            }).then((blob: any)=> {
+                blob.name = task.file.name;
+                task.file = blob;
+            });
+            promises.push(promise);
+        }
+
+        return Promise.all(promises);
+    }
+
+    /**
+     * 检验选项合法性
+     */
+    private  validateOptions(): void {
         if (!this.tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
+        }
+        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2) {
+            throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度');
         }
     }
 
@@ -276,8 +355,8 @@ class Uploader {
         return this._compress;
     }
 
-    get crop(): number[] {
-        return this._crop;
+    get scale(): number[] {
+        return this._scale;
     }
 
     get listener(): UploadListener {
