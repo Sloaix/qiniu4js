@@ -18,8 +18,8 @@ class UploaderBuilder {
     private _auto: boolean = true;//自动上传,每次选择文件后
     private _multiple: boolean = true;//是否支持多文件
     private _accept: string[] = [];//接受的文件类型
-    private _compress: number = 1;//图片压缩质量
-    private _scale: number[] = [];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
+    private _compress: number = 0.95;//图片压缩质量
+    private _scale: number[] = [0, 0];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
