@@ -18,14 +18,20 @@ class DirectUploadPattern implements IUploadPattern {
         //上传中
         xhr.upload.onprogress = (e: ProgressEvent)=> {
             if (e.lengthComputable) {
-                task.progress = Math.round((e.loaded * 100) / e.total);
-                this.uploader.listener.onTaskProgress(task);
+                let progress = Math.round((e.loaded * 100) / e.total);
+                if (task.progress != progress) {
+                    task.progress = progress;
+                    this.uploader.listener.onTaskProgress(task);
+                }
             }
         };
 
         //上传完成
         xhr.upload.onload = ()=> {
-            task.progress = 100;
+            if (task.progress != 100) {
+                task.progress = 100;
+                this.uploader.listener.onTaskProgress(task);
+            }
         };
 
 

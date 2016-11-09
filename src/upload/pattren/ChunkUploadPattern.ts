@@ -68,16 +68,22 @@ class ChunkUploadPattern implements IUploadPattern {
         //上传中
         xhr.upload.onprogress = (e: ProgressEvent)=> {
             if (e.lengthComputable) {
-                task.progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
-                this.uploader.listener.onTaskProgress(task);
+                let progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
+                if (task.progress != progress) {
+                    task.progress = progress;
+                    this.uploader.listener.onTaskProgress(task);
+                }
             }
         };
 
         //上传完成
         xhr.upload.onload = ()=> {
-            task.progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
+            let progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
+            if (task.progress != progress) {
+                task.progress = progress;
+                this.uploader.listener.onTaskProgress(task);
+            }
         };
-
 
         xhr.onreadystatechange = ()=> {
             if (xhr.readyState == XMLHttpRequest.DONE) {

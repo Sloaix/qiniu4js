@@ -18,8 +18,8 @@ class UploaderBuilder {
     private _auto: boolean = true;//自动上传,每次选择文件后
     private _multiple: boolean = true;//是否支持多文件
     private _accept: string[] = [];//接受的文件类型
-    private _compress: number = 100;//图片压缩质量
-    private _crop: number[] = [];//裁剪参数[x:20,y:20,width:20,height:20]
+    private _compress: number = 1;//图片压缩质量
+    private _scale: number[] = [];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
@@ -102,11 +102,22 @@ class UploaderBuilder {
 
     /**
      * 图片质量压缩,只在上传的文件是图片的时候有效
-     * @param compress 0-100,默认100,不压缩
+     * @param compress 0-1,默认1,不压缩
      * @returns {UploaderBuilder}
      */
     public compress(compress: number): UploaderBuilder {
-        this._compress = compress;
+        //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
+        this._compress = Math.max(Math.min(compress, 1), 0) * 0.95;
+        return this;
+    }
+
+    /**
+     * 图片缩放
+     * @returns {UploaderBuilder}
+     * @param scale
+     */
+    public scale(scale: number[]): UploaderBuilder {
+        this._scale = scale;
         return this;
     }
 
@@ -184,8 +195,8 @@ class UploaderBuilder {
         return this._compress;
     }
 
-    get getCrop(): number[] {
-        return this._crop;
+    get getScale(): number[] {
+        return this._scale;
     }
 
     get getListener(): UploadListener {
