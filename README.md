@@ -5,8 +5,6 @@ qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
 支持UMD模块导入。
 
-ps.目前仍处于快速迭代阶段(稳定版本尚未发布)，不建议用于生产环境，如果有issue，急需解决，可以知乎联系我(见最下方)，我会尽快更新。
-
 ## 已完成
 
 - [x] 文件直传
@@ -97,9 +95,11 @@ let uploader = new UploaderBuilder()
     .interceptor({...})
 	.listener({
 		onReady(tasks) {
+		    //该回调函数在图片处理前执行,也就是说task.file中的图片都是没有处理过的
 			//选择上传文件确定后,该生命周期函数会被回调。
 			
 		},onStart(tasks){
+		    //所有内部图片任务处理后执行
 			//开始上传
 			
 		},onTaskGetKey(task){
