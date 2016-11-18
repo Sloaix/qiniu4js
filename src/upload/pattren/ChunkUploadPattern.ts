@@ -8,185 +8,164 @@ import debug from "../../util/Debug";
  */
 class ChunkUploadPattern implements IUploadPattern {
     private uploader: Uploader;
+    private task: ChunkTask;
 
     init(uploader: Uploader): void {
         this.uploader = uploader;
     }
 
-    /**
-     * 分块上传
-     */
     upload(task: ChunkTask): void {
-        //只需要调用方法上传第一个块，之后就会递归调用自动上传。
-        let firstBlock: Block = task.blocks[0];
-        let firstChunk: Chunk = firstBlock.chunks[0];
-
+        this.task = task;
         if (this.uploader.tokenShare && this.uploader.token) {
             task.startDate = new Date();
-            this.uploadChunk(firstChunk, firstBlock, task, this.uploader.token);
+            this.uploadBlock(this.uploader.token);
         }
         else {
             debug.d(`开始获取token`);
-            this.uploader.tokenFunc((token: string)=> {
+            this.uploader.tokenFunc((token: string) => {
                 debug.d(`token获取成功 ${token}`);
                 this.uploader.token = token;
                 task.startDate = new Date();
-                this.uploadChunk(firstChunk, firstBlock, task, token);
+                this.uploadBlock(token);
             }, task);
         }
     }
 
-    /**
-     *
-     * @param chunk 将要上传的chunk
-     * @param ctx 前一次上传返回的块级上传控制信息。
-     * @param nextHost 下一次的分片上传地址
-     * @param block 当前chunk属于的block
-     * @param task 分片任务
-     * @param token 上传凭证
-     */
-    private uploadChunk(chunk: Chunk, block: Block, task: ChunkTask, token: string, ctx?: string, nextHost?: string) {
-        let chunkIndex: number = block.chunks.indexOf(chunk);
-        let blockIndex: number = task.blocks.indexOf(block);
-        let prevBlocksSize: number = 0;
-        for (let i: number = 0; i < blockIndex; i++) {
-            prevBlocksSize += task.blocks[i].data.size;
+    private uploadBlock(token: string) {
+        let chain: Promise = Promise.resolve();
+        for (let block: Block of this.task.blocks) {
+            for (let chunk: Chunk of block.chunks) {
+                chain = chain.then(() => {
+                    return this.uploadChunk(chunk, this.uploader.token)
+                });
+            }
         }
 
-        let xhr: XMLHttpRequest = new XMLHttpRequest();
-        /**
-         * 根据index进行不同的上传策略，因为第一个chunk是随着创建block的时候附带上传的。
-         */
+        chain.then(() => {
+            return this.concatChunks(token);
+        }).then(() => {
+            //所有任务都结束了
+            if (this.uploader.isTaskQueueFinish()) {
+                //更改任务执行中标志
+                this.uploader.tasking = false;
 
-            //根据index获取不同的上传url
-        let url: string = chunkIndex == 0 ? this.getUploadBlockUrl(block.data.size) : this.getUploadChunkUrl(chunk.start, ctx, nextHost);
-
-        xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
-        xhr.setRequestHeader('Content-Type', 'application/octet-stream');//设置contentType
-        xhr.setRequestHeader('Authorization', `UpToken ${token}`);//添加token验证头
-
-        //上传中
-        xhr.upload.onprogress = (e: ProgressEvent)=> {
-            if (e.lengthComputable) {
-                let progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
-                if (task.progress != progress) {
-                    task.progress = progress;
-                    this.uploader.listener.onTaskProgress(task);
-                }
+                //监听器调用
+                this.uploader.listener.onFinish(this.uploader.taskQueue);
             }
-        };
-
-        //上传完成
-        xhr.upload.onload = ()=> {
-            let progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
-            if (task.progress != progress) {
-                task.progress = progress;
-                this.uploader.listener.onTaskProgress(task);
-            }
-        };
-
-        xhr.onreadystatechange = ()=> {
-            if (xhr.readyState == XMLHttpRequest.DONE) {
-                if (xhr.status == 200 && xhr.responseText != '') {
-                    let result: any = JSON.parse(xhr.responseText);
-                    chunk.isFinish = true;
-                    chunk.ctx = result.ctx;
-                    //判断是否还有chunk等待我们上传
-                    let hasNextChunk: boolean = block.chunks.indexOf(chunk) != block.chunks.length - 1;
-                    if (hasNextChunk) {
-                        let nextChunkIndex: number = chunkIndex + 1;
-                        let nextChunk: Chunk = block.chunks[nextChunkIndex];
-                        //上传下一个chunk
-                        this.uploadChunk(nextChunk, block, task, token, chunk.ctx, result.host);
-                    }
-                    else {
-                        //判断是否还有block等待我们上传
-                        let hasNextBlock: boolean = task.blocks.indexOf(block) != task.blocks.length - 1;
-                        if (hasNextBlock) {
-                            //上传下一个block
-                            let nextBlockIndex: number = blockIndex + 1;
-                            let nextBlock: Block = task.blocks[nextBlockIndex];
-                            this.uploadChunk(nextBlock.chunks[0], nextBlock, task, token);
-                        }
-                        //将之前上传的所有块组合成文件
-                        else {
-                            let encodedKey = task.key ? btoa(encodeURIComponent(task.key)) : null;
-                            let url = this.getMakeFileUrl(task.file.size, encodedKey);
-                            //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
-                            let ctxListString = '';
-
-                            for (let block: Block of task.blocks) {
-                                let lastChunk = block.chunks[block.chunks.length - 1];
-                                ctxListString += lastChunk.ctx + ',';
-                            }
-
-                            if (ctxListString.endsWith(',')) {
-                                ctxListString = ctxListString.substring(0, ctxListString.length - 1);
-                            }
-
-                            let xhr: XMLHttpRequest = new XMLHttpRequest();
-                            xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
-                            xhr.setRequestHeader('Content-Type', 'text/plain');//设置contentType
-                            xhr.setRequestHeader('Authorization', `UpToken ${token}`);//添加token验证头
-                            xhr.send(ctxListString);
-                            xhr.onreadystatechange = ()=> {
-                                if (xhr.readyState == XMLHttpRequest.DONE) {
-                                    task.isFinish = true;
-                                    if (xhr.status == 200 && xhr.responseText != '') {
-                                        let result: any = JSON.parse(xhr.responseText);
-                                        task.isSuccess = true;
-                                        task.endDate = new Date();
-                                        task.progress = 100;
-                                        this.uploader.listener.onTaskSuccess(task);
-                                    }
-                                    else {
-                                        if (this.retryTask(task)) {
-                                            debug.w(`${task.file.name}分块上传失败,准备开始重传`);
-                                            this.uploader.listener.onTaskRetry(task);
-                                        }
-                                        else {
-                                            debug.w(`${task.file.name}分块上传失败`);
-                                            task.error = JSON.parse(xhr.responseText);
-                                            task.error = task.error ? task.error : xhr.response;
-                                            task.isSuccess = false;
-                                            task.isFinish = true;
-                                            task.endDate = new Date();
-                                            this.uploader.listener.onTaskFail(task);
-                                        }
-                                    }
-
-                                    //所有任务都结束了
-                                    if (this.uploader.isTaskQueueFinish()) {
-                                        //更改任务执行中标志
-                                        this.uploader.tasking = false;
-
-                                        //监听器调用
-                                        this.uploader.listener.onFinish(this.uploader.taskQueue);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else {
-                }
-            }
-        };
-        xhr.send(chunk.data);
+        }).catch((response) => {
+            debug.w(`${this.task.file.name}分块上传失败`);
+            this.task.error = response;
+            this.task.isSuccess = false;
+            this.task.isFinish = true;
+            this.task.endDate = new Date();
+            this.uploader.listener.onTaskFail(this.task);
+        });
     }
 
-    private retryTask(task: ChunkTask): boolean {
-        //达到重试次数
-        if (task.retry >= this.uploader.retry) {
-            debug.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
-            return false;
-        }
-        task.retry++;
-        debug.w(`${task.file.name}开始重传,当前重传次数${task.retry}`);
-        // this.upload(task);
+    private uploadChunk(chunk: Chunk, token: string) {
+        return new Promise((resolve, reject) => {
+            let isFirstChunkInBlock = chunk.block.chunks.indexOf(chunk) == 0;
+            let chunkIndex = chunk.block.chunks.indexOf(chunk);
+            //前一个chunk,如果存在的话
+            let prevChunk = isFirstChunkInBlock ? null : chunk.block.chunks[chunkIndex - 1];
 
-        //todo
-        return true;
+            let url: string = isFirstChunkInBlock ? this.getUploadBlockUrl(chunk.block.data.size) : this.getUploadChunkUrl(chunk.start, prevChunk ? prevChunk.ctx : null, prevChunk ? prevChunk.host : null);
+
+            let xhr: XMLHttpRequest = new XMLHttpRequest();
+            xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');//设置contentType
+            xhr.setRequestHeader('Authorization', `UpToken ${token}`);//添加token验证头
+
+            //分片上传中
+            xhr.upload.onprogress = (e: ProgressEvent) => {
+                if (e.lengthComputable) {
+                    let progress = Math.round(((this.task.finishedBlocksSize + chunk.start + e.loaded) / this.task.file.size) * 100);
+                    if (this.task.progress < progress) {
+                        this.task.progress = progress;
+                        this.uploader.listener.onTaskProgress(this.task);
+                    }
+                }
+            };
+
+            //分片上传完成
+            xhr.upload.onload = () => {
+                let progress = Math.round(((this.task.finishedBlocksSize + chunk.start + chunk.data.size) / this.task.file.size) * 100);
+                if (this.task.progress < progress) {
+                    this.task.progress = progress;
+                    this.uploader.listener.onTaskProgress(this.task);
+                }
+            };
+
+            //响应返回
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    if (xhr.status == 200 && xhr.responseText != '') {
+                        let result: any = JSON.parse(xhr.responseText);
+                        chunk.isFinish = true;
+                        chunk.processing = false;
+                        chunk.ctx = result.ctx;
+                        chunk.host = result.host;
+                        let chunkIndex: number = chunk.block.chunks.indexOf(chunk);
+                        let hasNextChunkInThisBlock: boolean = chunkIndex != chunk.block.chunks.length - 1;
+                        if (!hasNextChunkInThisBlock) {
+                            chunk.block.isFinish = true;
+                            chunk.block.processing = false;
+                        }
+                        resolve();
+                    }
+                    else {
+                        reject(xhr.response);
+                    }
+                }
+            };
+
+            xhr.send(chunk.data);
+        });
+    }
+
+
+    private concatChunks(token: string) {
+        return new Promise((resolve, reject) => {
+            let encodedKey = this.task.key ? btoa(encodeURIComponent(this.task.key)) : null;
+            let url = this.getMakeFileUrl(this.task.file.size, encodedKey);
+            //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
+            let ctxListString = '';
+
+            for (let block: Block of this.task.blocks) {
+                let lastChunk = block.chunks[block.chunks.length - 1];
+                ctxListString += lastChunk.ctx + ',';
+            }
+
+            if (ctxListString.endsWith(',')) {
+                ctxListString = ctxListString.substring(0, ctxListString.length - 1);
+            }
+
+            let xhr: XMLHttpRequest = new XMLHttpRequest();
+            xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
+            xhr.setRequestHeader('Content-Type', 'text/plain');//设置contentType
+            xhr.setRequestHeader('Authorization', `UpToken ${token}`);//添加token验证头
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    this.task.isFinish = true;
+                    if (xhr.status == 200 && xhr.responseText != '') {
+                        let result: any = JSON.parse(xhr.responseText);
+                        this.task.isSuccess = true;
+                        this.task.result = result;
+                        this.task.endDate = new Date();
+                        this.uploader.listener.onTaskSuccess(this.task);
+                        resolve();
+                    }
+                    else if (this.retryTask(this.task)) {
+                        debug.w(`${this.task.file.name}分块上传失败,准备开始重传`);
+                        this.uploader.listener.onTaskRetry(this.task);
+                    }
+                    else {
+                        reject(xhr.response);
+                    }
+                }
+            };
+            xhr.send(ctxListString);
+        });
     }
 
     /**
@@ -221,6 +200,21 @@ class ChunkUploadPattern implements IUploadPattern {
         else {
             return `${this.uploader.domain}/mkfile/${fileSize}`;
         }
+    }
+
+
+    private retryTask(task: ChunkTask): boolean {
+        //达到重试次数
+        if (task.retry >= this.uploader.retry) {
+            debug.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
+            return false;
+        }
+        task.retry++;
+        debug.w(`${task.file.name}开始重传,当前重传次数${task.retry}`);
+        // this.upload(task);
+
+        //todo
+        return true;
     }
 
 }

@@ -41,8 +41,8 @@ var BaseTask = (function () {
         get: function () {
             return this._file;
         },
-        set: function (value) {
-            this._file = value;
+        set: function (file) {
+            this._file = file;
         },
         enumerable: true,
         configurable: true
@@ -173,36 +173,116 @@ var ChunkTask = (function (_super) {
      * @param chunkSize 片大小
      */
     function ChunkTask(file, blockSize, chunkSize) {
+        _super.call(this, file);
         //分块
         this._blocks = [];
-        _super.prototype.constructor.call(this, file);
-        this.spliceFile2Block(blockSize, chunkSize);
+        this._blockSize = 0;
+        this._chunkSize = 0;
+        this._blockSize = blockSize;
+        this._chunkSize = chunkSize;
+        this.spliceFile2Block();
     }
     /**
      * 将文件分块
      */
-    ChunkTask.prototype.spliceFile2Block = function (blockSize, chunkSize) {
-        var fileSize = this.file.size;
-        var file = this.file;
+    ChunkTask.prototype.spliceFile2Block = function () {
+        this._blocks = [];
+        var fileSize = this._file.size;
+        var file = this._file;
         //总块数
-        var blockCount = Math.ceil(fileSize / blockSize);
+        var blockCount = Math.ceil(fileSize / this._blockSize);
         for (var i = 0; i < blockCount; i++) {
-            var start = i * blockSize; //起始位置
-            var end = start + blockSize; //结束位置
+            var start = i * this._blockSize; //起始位置
+            var end = start + this._blockSize; //结束位置
             //构造一个块实例
-            var block = new Block(start, end, file.slice(start, end), chunkSize);
+            var block = new Block(start, end, file.slice(start, end), this._chunkSize, file);
             //添加到数组中
             this._blocks.push(block);
         }
     };
     Object.defineProperty(ChunkTask.prototype, "blocks", {
+        /**
+         * 获取所有的block
+         * @returns {Block[]}
+         */
         get: function () {
             return this._blocks;
         },
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(ChunkTask.prototype, "processingBlock", {
+        /**
+         * 获取正在处理的block
+         * @returns {Block}
+         */
+        get: function () {
+            for (var _i = 0, _a = this._blocks; _i < _a.length; _i++) {
+                var block = _a[_i];
+                if (!block.processing) {
+                    continue;
+                }
+                return block;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ChunkTask.prototype, "finishedBlocksSize", {
+        get: function () {
+            var size = 0;
+            for (var _i = 0, _a = this._blocks; _i < _a.length; _i++) {
+                var block = _a[_i];
+                size += (block.isFinish ? block.data.size : 0);
+            }
+            return size;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ChunkTask.prototype, "chunks", {
+        get: function () {
+            var array = [];
+            for (var _i = 0, _a = this._blocks; _i < _a.length; _i++) {
+                var block = _a[_i];
+                for (var _b = 0, _c = block.chunks; _b < _c.length; _b++) {
+                    var chunk = _c[_b];
+                    array.push(chunk);
+                }
+            }
+            return array;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(ChunkTask.prototype, "processingChunk", {
+        /**
+         * 获取正在处理的chunk
+         * @returns {Block}
+         */
+        get: function () {
+            for (var _i = 0, _a = this._blocks; _i < _a.length; _i++) {
+                var block = _a[_i];
+                if (!block.processing) {
+                    continue;
+                }
+                for (var _b = 0, _c = block.chunks; _b < _c.length; _b++) {
+                    var chunk = _c[_b];
+                    if (!chunk.processing) {
+                        continue;
+                    }
+                    return chunk;
+                }
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(ChunkTask.prototype, "totalChunkCount", {
+        /**
+         * 总共分片数量(所有分块的分片数量总和)
+         * @returns {number}
+         */
         get: function () {
             var count = 0;
             for (var _i = 0, _a = this._blocks; _i < _a.length; _i++) {
@@ -215,16 +295,27 @@ var ChunkTask = (function (_super) {
         configurable: true
     });
     return ChunkTask;
-}(DirectTask));
+}(BaseTask));
 /**
  * 分块，分块大小七牛固定是4M
  */
 var Block = (function () {
-    function Block(start, end, data, chunkSize) {
+    /**
+     *
+     * @param start 起始位置
+     * @param end 结束位置
+     * @param data 块数据
+     * @param chunkSize 分片数据的最大大小
+     * @param file 分块所属文件
+     */
+    function Block(start, end, data, chunkSize, file) {
         this._chunks = [];
+        this._isFinish = false; //是否上传完成
+        this._processing = false; //是否正在上传
         this._data = data;
         this._start = start;
         this._end = end;
+        this._file = file;
         this.spliceBlock2Chunk(chunkSize);
     }
     /**
@@ -239,12 +330,55 @@ var Block = (function () {
             var start = i * chunkSize; //起始位置
             var end = start + chunkSize; //结束位置
             //构造一个片实例
-            var chunk = new Chunk(start, end, data.slice(start, end));
+            var chunk = new Chunk(start, end, data.slice(start, end), this);
             //添加到数组中
             this._chunks.push(chunk);
         }
     };
+    Object.defineProperty(Block.prototype, "processing", {
+        /**
+         * 是否上传中
+         * @returns {boolean}
+         */
+        get: function () {
+            return this._processing;
+        },
+        set: function (value) {
+            this._processing = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Block.prototype, "file", {
+        /**
+         * 分块所属的文件
+         * @returns {File}
+         */
+        get: function () {
+            return this._file;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Block.prototype, "isFinish", {
+        /**
+         * 是否已经结束
+         * @returns {boolean}
+         */
+        get: function () {
+            return this._isFinish;
+        },
+        set: function (value) {
+            this._isFinish = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Block.prototype, "data", {
+        /**
+         * 返回分块数据
+         * @returns {Blob}
+         */
         get: function () {
             return this._data;
         },
@@ -252,6 +386,10 @@ var Block = (function () {
         configurable: true
     });
     Object.defineProperty(Block.prototype, "start", {
+        /**
+         * 返回字节起始位置
+         * @returns {number}
+         */
         get: function () {
             return this._start;
         },
@@ -259,6 +397,10 @@ var Block = (function () {
         configurable: true
     });
     Object.defineProperty(Block.prototype, "end", {
+        /**
+         * 返回字节结束位置
+         * @returns {number}
+         */
         get: function () {
             return this._end;
         },
@@ -278,13 +420,37 @@ var Block = (function () {
  * 分片，分片大小可以自定义，至少1字节
  */
 var Chunk = (function () {
-    function Chunk(start, end, data) {
+    /**
+     *
+     * @param start 字节起始位置
+     * @param end 字节结束位置
+     * @param data 分片数据
+     * @param block 分块对象
+     */
+    function Chunk(start, end, data, block) {
+        this._processing = false; //是否正在上传
         this._isFinish = false; //是否上传完成
         this._start = start;
         this._end = end;
         this._data = data;
+        this._block = block;
     }
+    Object.defineProperty(Chunk.prototype, "block", {
+        /**
+         * 返回chunk所属的Block对象
+         * @returns {Block}
+         */
+        get: function () {
+            return this._block;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Chunk.prototype, "start", {
+        /**
+         * 返回字节起始位置
+         * @returns {number}
+         */
         get: function () {
             return this._start;
         },
@@ -292,6 +458,10 @@ var Chunk = (function () {
         configurable: true
     });
     Object.defineProperty(Chunk.prototype, "end", {
+        /**
+         * 返回字节结束位置
+         * @returns {number}
+         */
         get: function () {
             return this._end;
         },
@@ -299,6 +469,10 @@ var Chunk = (function () {
         configurable: true
     });
     Object.defineProperty(Chunk.prototype, "data", {
+        /**
+         * 返回分片数据
+         * @returns {Blob}
+         */
         get: function () {
             return this._data;
         },
@@ -306,6 +480,10 @@ var Chunk = (function () {
         configurable: true
     });
     Object.defineProperty(Chunk.prototype, "isFinish", {
+        /**
+         * 是否已经结束
+         * @returns {boolean}
+         */
         get: function () {
             return this._isFinish;
         },
@@ -315,7 +493,35 @@ var Chunk = (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Chunk.prototype, "host", {
+        get: function () {
+            return this._host;
+        },
+        set: function (value) {
+            this._host = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Chunk.prototype, "processing", {
+        /**
+         * 是否上传中
+         * @returns {boolean}
+         */
+        get: function () {
+            return this._processing;
+        },
+        set: function (value) {
+            this._processing = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Chunk.prototype, "ctx", {
+        /**
+         * 返回上传控制信息(七牛服务器返回前一次上传返回的分片上传控制信息,用于下一次上传,第一个chunk此值为空)
+         * @returns {string}
+         */
         get: function () {
             return this._ctx;
         },
@@ -341,7 +547,7 @@ var UploaderBuilder = (function () {
         this._auto = true; //自动上传,每次选择文件后
         this._multiple = true; //是否支持多文件
         this._accept = []; //接受的文件类型
-        this._compress = 0.95; //图片压缩质量
+        this._compress = 1; //图片压缩质量
         this._scale = [0, 0]; //缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
         this._tokenShare = true; //分享token,如果为false,每一次HTTP请求都需要新获取Token
         this._interceptors = []; //任务拦截器
@@ -419,8 +625,7 @@ var UploaderBuilder = (function () {
      * @returns {UploaderBuilder}
      */
     UploaderBuilder.prototype.compress = function (compress) {
-        //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
-        this._compress = Math.max(Math.min(compress, 1), 0) * 0.95;
+        this._compress = Math.max(Math.min(compress, 1), 0);
         return this;
     };
     /**
@@ -664,6 +869,10 @@ var DirectUploadPattern = (function () {
     DirectUploadPattern.prototype.init = function (uploader) {
         this.uploader = uploader;
     };
+    /**
+     * 实现接口的上传方法
+     * @param task
+     */
     DirectUploadPattern.prototype.upload = function (task) {
         var _this = this;
         var xhr = new XMLHttpRequest();
@@ -671,7 +880,7 @@ var DirectUploadPattern = (function () {
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
                 var progress = Math.round((e.loaded * 100) / e.total);
-                if (task.progress != progress) {
+                if (task.progress < progress) {
                     task.progress = progress;
                     _this.uploader.listener.onTaskProgress(task);
                 }
@@ -679,12 +888,13 @@ var DirectUploadPattern = (function () {
         };
         //上传完成
         xhr.upload.onload = function () {
-            if (task.progress != 100) {
+            if (task.progress < 100) {
                 task.progress = 100;
                 _this.uploader.listener.onTaskProgress(task);
             }
         };
         var url = this.uploader.domain;
+        //避免浏览器缓存http请求
         url += ((/\?/).test(this.uploader.domain) ? "&" : "?") + (new Date()).getTime();
         xhr.open('POST', url, true);
         xhr.onreadystatechange = function () {
@@ -696,43 +906,37 @@ var DirectUploadPattern = (function () {
                     task.endDate = new Date();
                     _this.uploader.listener.onTaskSuccess(task);
                 }
+                else if (_this.retryTask(task)) {
+                    Debug.w(task.file.name + "\u4E0A\u4F20\u5931\u8D25,\u51C6\u5907\u5F00\u59CB\u91CD\u4F20");
+                    _this.uploader.listener.onTaskRetry(task);
+                }
                 else {
-                    if (_this.retryTask(task)) {
-                        Debug.w(task.file.name + "\u4E0A\u4F20\u5931\u8D25,\u51C6\u5907\u5F00\u59CB\u91CD\u4F20");
-                        _this.uploader.listener.onTaskRetry(task);
-                    }
-                    else {
-                        Debug.w(task.file.name + "\u4E0A\u4F20\u5931\u8D25");
-                        try {
-                            task.error = JSON.parse(xhr.responseText);
-                        }
-                        catch (error) {
-                            task.error = xhr.response;
-                        }
-                        task.isSuccess = false;
-                        task.isFinish = true;
-                        task.endDate = new Date();
-                        _this.uploader.listener.onTaskFail(task);
-                    }
+                    Debug.w(task.file.name + "\u4E0A\u4F20\u5931\u8D25");
+                    task.error = xhr.response;
+                    task.isSuccess = false;
+                    task.isFinish = true;
+                    task.endDate = new Date();
+                    _this.uploader.listener.onTaskFail(task);
                 }
                 //所有任务都结束了
                 if (_this.uploader.isTaskQueueFinish()) {
                     //更改任务执行中标志
                     _this.uploader.tasking = false;
-                    //监听器调用
+                    //onFinish callback
                     _this.uploader.listener.onFinish(_this.uploader.taskQueue);
                 }
             }
         };
         if (this.uploader.tokenShare && this.uploader.token) {
+            Debug.d("\u4F7F\u7528\u4E0A\u6B21token\u8FDB\u884C\u4E0A\u4F20");
             task.startDate = new Date();
             var formData = DirectUploadPattern.createFormData(task, this.uploader.token);
             xhr.send(formData);
         }
         else {
-            Debug.d("\u5F00\u59CB\u83B7\u53D6token");
+            Debug.d("\u5F00\u59CB\u83B7\u53D6\u4E0A\u4F20token");
             this.uploader.tokenFunc(function (token) {
-                Debug.d("token\u83B7\u53D6\u6210\u529F " + token);
+                Debug.d("\u4E0A\u4F20token\u83B7\u53D6\u6210\u529F " + token);
                 _this.uploader.token = token;
                 task.startDate = new Date();
                 var formData = DirectUploadPattern.createFormData(task, _this.uploader.token);
@@ -740,8 +944,15 @@ var DirectUploadPattern = (function () {
             }, task);
         }
     };
+    /**
+     * 创建表单
+     * @param task
+     * @param token
+     * @returns {FormData}
+     */
     DirectUploadPattern.createFormData = function (task, token) {
         var formData = new FormData();
+        //key存在，添加到formData中，若不设置，七牛服务器会自动生成hash key
         if (task.key !== null && task.key !== undefined) {
             formData.append('key', task.key);
         }
@@ -750,6 +961,11 @@ var DirectUploadPattern = (function () {
         Debug.d("\u521B\u5EFAformData\u5BF9\u8C61");
         return formData;
     };
+    /**
+     * 重传
+     * @param task
+     * @returns {boolean}
+     */
     DirectUploadPattern.prototype.retryTask = function (task) {
         //达到重试次数
         if (task.retry >= this.uploader.retry) {
@@ -773,17 +989,12 @@ var ChunkUploadPattern = (function () {
     ChunkUploadPattern.prototype.init = function (uploader) {
         this.uploader = uploader;
     };
-    /**
-     * 分块上传
-     */
     ChunkUploadPattern.prototype.upload = function (task) {
         var _this = this;
-        //只需要调用方法上传第一个块，之后就会递归调用自动上传。
-        var firstBlock = task.blocks[0];
-        var firstChunk = firstBlock.chunks[0];
+        this.task = task;
         if (this.uploader.tokenShare && this.uploader.token) {
             task.startDate = new Date();
-            this.uploadChunk(firstChunk, firstBlock, task, this.uploader.token);
+            this.uploadBlock(this.uploader.token);
         }
         else {
             Debug.d("\u5F00\u59CB\u83B7\u53D6token");
@@ -791,149 +1002,140 @@ var ChunkUploadPattern = (function () {
                 Debug.d("token\u83B7\u53D6\u6210\u529F " + token);
                 _this.uploader.token = token;
                 task.startDate = new Date();
-                _this.uploadChunk(firstChunk, firstBlock, task, token);
+                _this.uploadBlock(token);
             }, task);
         }
     };
-    /**
-     *
-     * @param chunk 将要上传的chunk
-     * @param ctx 前一次上传返回的块级上传控制信息。
-     * @param nextHost 下一次的分片上传地址
-     * @param block 当前chunk属于的block
-     * @param task 分片任务
-     * @param token 上传凭证
-     */
-    ChunkUploadPattern.prototype.uploadChunk = function (chunk, block, task, token, ctx, nextHost) {
+    ChunkUploadPattern.prototype.uploadBlock = function (token) {
         var _this = this;
-        var chunkIndex = block.chunks.indexOf(chunk);
-        var blockIndex = task.blocks.indexOf(block);
-        var prevBlocksSize = 0;
-        for (var i = 0; i < blockIndex; i++) {
-            prevBlocksSize += task.blocks[i].data.size;
+        var chain = Promise.resolve();
+        for (var _i = 0, _a = this.task.blocks; _i < _a.length; _i++) {
+            var block = _a[_i];
+            var _loop_1 = function(chunk) {
+                chain = chain.then(function () {
+                    return _this.uploadChunk(chunk, _this.uploader.token);
+                });
+            };
+            for (var _b = 0, _c = block.chunks; _b < _c.length; _b++) {
+                var chunk = _c[_b];
+                _loop_1(chunk);
+            }
         }
-        var xhr = new XMLHttpRequest();
-        /**
-         * 根据index进行不同的上传策略，因为第一个chunk是随着创建block的时候附带上传的。
-         */
-        //根据index获取不同的上传url
-        var url = chunkIndex == 0 ? this.getUploadBlockUrl(block.data.size) : this.getUploadChunkUrl(chunk.start, ctx, nextHost);
-        xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
-        xhr.setRequestHeader('Content-Type', 'application/octet-stream'); //设置contentType
-        xhr.setRequestHeader('Authorization', "UpToken " + token); //添加token验证头
-        //上传中
-        xhr.upload.onprogress = function (e) {
-            if (e.lengthComputable) {
-                var progress = Math.round(((prevBlocksSize + chunk.start + e.loaded) / task.file.size) * 100);
-                if (task.progress != progress) {
-                    task.progress = progress;
-                    _this.uploader.listener.onTaskProgress(task);
+        chain.then(function () {
+            return _this.concatChunks(token);
+        }).then(function () {
+            //所有任务都结束了
+            if (_this.uploader.isTaskQueueFinish()) {
+                //更改任务执行中标志
+                _this.uploader.tasking = false;
+                //监听器调用
+                _this.uploader.listener.onFinish(_this.uploader.taskQueue);
+            }
+        }).catch(function (response) {
+            Debug.w(_this.task.file.name + "\u5206\u5757\u4E0A\u4F20\u5931\u8D25");
+            _this.task.error = response;
+            _this.task.isSuccess = false;
+            _this.task.isFinish = true;
+            _this.task.endDate = new Date();
+            _this.uploader.listener.onTaskFail(_this.task);
+        });
+    };
+    ChunkUploadPattern.prototype.uploadChunk = function (chunk, token) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            var isFirstChunkInBlock = chunk.block.chunks.indexOf(chunk) == 0;
+            var chunkIndex = chunk.block.chunks.indexOf(chunk);
+            //前一个chunk,如果存在的话
+            var prevChunk = isFirstChunkInBlock ? null : chunk.block.chunks[chunkIndex - 1];
+            var url = isFirstChunkInBlock ? _this.getUploadBlockUrl(chunk.block.data.size) : _this.getUploadChunkUrl(chunk.start, prevChunk ? prevChunk.ctx : null, prevChunk ? prevChunk.host : null);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream'); //设置contentType
+            xhr.setRequestHeader('Authorization', "UpToken " + token); //添加token验证头
+            //分片上传中
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    var progress = Math.round(((_this.task.finishedBlocksSize + chunk.start + e.loaded) / _this.task.file.size) * 100);
+                    if (_this.task.progress < progress) {
+                        _this.task.progress = progress;
+                        _this.uploader.listener.onTaskProgress(_this.task);
+                    }
                 }
-            }
-        };
-        //上传完成
-        xhr.upload.onload = function () {
-            var progress = ((prevBlocksSize + chunk.start + chunk.data.size) / task.file.size) * 100;
-            if (task.progress != progress) {
-                task.progress = progress;
-                _this.uploader.listener.onTaskProgress(task);
-            }
-        };
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == XMLHttpRequest.DONE) {
-                if (xhr.status == 200 && xhr.responseText != '') {
-                    var result = JSON.parse(xhr.responseText);
-                    chunk.isFinish = true;
-                    chunk.ctx = result.ctx;
-                    //判断是否还有chunk等待我们上传
-                    var hasNextChunk = block.chunks.indexOf(chunk) != block.chunks.length - 1;
-                    if (hasNextChunk) {
-                        var nextChunkIndex = chunkIndex + 1;
-                        var nextChunk = block.chunks[nextChunkIndex];
-                        //上传下一个chunk
-                        _this.uploadChunk(nextChunk, block, task, token, chunk.ctx, result.host);
+            };
+            //分片上传完成
+            xhr.upload.onload = function () {
+                var progress = Math.round(((_this.task.finishedBlocksSize + chunk.start + chunk.data.size) / _this.task.file.size) * 100);
+                if (_this.task.progress < progress) {
+                    _this.task.progress = progress;
+                    _this.uploader.listener.onTaskProgress(_this.task);
+                }
+            };
+            //响应返回
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    if (xhr.status == 200 && xhr.responseText != '') {
+                        var result = JSON.parse(xhr.responseText);
+                        chunk.isFinish = true;
+                        chunk.processing = false;
+                        chunk.ctx = result.ctx;
+                        chunk.host = result.host;
+                        var chunkIndex_1 = chunk.block.chunks.indexOf(chunk);
+                        var hasNextChunkInThisBlock = chunkIndex_1 != chunk.block.chunks.length - 1;
+                        if (!hasNextChunkInThisBlock) {
+                            chunk.block.isFinish = true;
+                            chunk.block.processing = false;
+                        }
+                        resolve();
                     }
                     else {
-                        //判断是否还有block等待我们上传
-                        var hasNextBlock = task.blocks.indexOf(block) != task.blocks.length - 1;
-                        if (hasNextBlock) {
-                            //上传下一个block
-                            var nextBlockIndex = blockIndex + 1;
-                            var nextBlock = task.blocks[nextBlockIndex];
-                            _this.uploadChunk(nextBlock.chunks[0], nextBlock, task, token);
-                        }
-                        else {
-                            var encodedKey = task.key ? btoa(encodeURIComponent(task.key)) : null;
-                            var url_1 = _this.getMakeFileUrl(task.file.size, encodedKey);
-                            //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
-                            var ctxListString = '';
-                            for (var _i = 0, _a = task.blocks; _i < _a.length; _i++) {
-                                var block_1 = _a[_i];
-                                var lastChunk = block_1.chunks[block_1.chunks.length - 1];
-                                ctxListString += lastChunk.ctx + ',';
-                            }
-                            if (ctxListString.endsWith(',')) {
-                                ctxListString = ctxListString.substring(0, ctxListString.length - 1);
-                            }
-                            var xhr_1 = new XMLHttpRequest();
-                            xhr_1.open('POST', url_1 += ((/\?/).test(url_1) ? "&" : "?") + (new Date()).getTime(), true);
-                            xhr_1.setRequestHeader('Content-Type', 'text/plain'); //设置contentType
-                            xhr_1.setRequestHeader('Authorization', "UpToken " + token); //添加token验证头
-                            xhr_1.send(ctxListString);
-                            xhr_1.onreadystatechange = function () {
-                                if (xhr_1.readyState == XMLHttpRequest.DONE) {
-                                    task.isFinish = true;
-                                    if (xhr_1.status == 200 && xhr_1.responseText != '') {
-                                        var result_1 = JSON.parse(xhr_1.responseText);
-                                        task.isSuccess = true;
-                                        task.endDate = new Date();
-                                        task.progress = 100;
-                                        _this.uploader.listener.onTaskSuccess(task);
-                                    }
-                                    else {
-                                        if (_this.retryTask(task)) {
-                                            Debug.w(task.file.name + "\u5206\u5757\u4E0A\u4F20\u5931\u8D25,\u51C6\u5907\u5F00\u59CB\u91CD\u4F20");
-                                            _this.uploader.listener.onTaskRetry(task);
-                                        }
-                                        else {
-                                            Debug.w(task.file.name + "\u5206\u5757\u4E0A\u4F20\u5931\u8D25");
-                                            task.error = JSON.parse(xhr_1.responseText);
-                                            task.error = task.error ? task.error : xhr_1.response;
-                                            task.isSuccess = false;
-                                            task.isFinish = true;
-                                            task.endDate = new Date();
-                                            _this.uploader.listener.onTaskFail(task);
-                                        }
-                                    }
-                                    //所有任务都结束了
-                                    if (_this.uploader.isTaskQueueFinish()) {
-                                        //更改任务执行中标志
-                                        _this.uploader.tasking = false;
-                                        //监听器调用
-                                        _this.uploader.listener.onFinish(_this.uploader.taskQueue);
-                                    }
-                                }
-                            };
-                        }
+                        reject(xhr.response);
                     }
                 }
-                else {
-                }
-            }
-        };
-        xhr.send(chunk.data);
+            };
+            xhr.send(chunk.data);
+        });
     };
-    ChunkUploadPattern.prototype.retryTask = function (task) {
-        //达到重试次数
-        if (task.retry >= this.uploader.retry) {
-            Debug.w(task.file.name + "\u8FBE\u5230\u91CD\u4F20\u6B21\u6570\u4E0A\u9650" + this.uploader.retry + ",\u505C\u6B62\u91CD\u4F20");
-            return false;
-        }
-        task.retry++;
-        Debug.w(task.file.name + "\u5F00\u59CB\u91CD\u4F20,\u5F53\u524D\u91CD\u4F20\u6B21\u6570" + task.retry);
-        // this.upload(task);
-        //todo
-        return true;
+    ChunkUploadPattern.prototype.concatChunks = function (token) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            var encodedKey = _this.task.key ? btoa(encodeURIComponent(_this.task.key)) : null;
+            var url = _this.getMakeFileUrl(_this.task.file.size, encodedKey);
+            //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
+            var ctxListString = '';
+            for (var _i = 0, _a = _this.task.blocks; _i < _a.length; _i++) {
+                var block = _a[_i];
+                var lastChunk = block.chunks[block.chunks.length - 1];
+                ctxListString += lastChunk.ctx + ',';
+            }
+            if (ctxListString.endsWith(',')) {
+                ctxListString = ctxListString.substring(0, ctxListString.length - 1);
+            }
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), true);
+            xhr.setRequestHeader('Content-Type', 'text/plain'); //设置contentType
+            xhr.setRequestHeader('Authorization', "UpToken " + token); //添加token验证头
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    _this.task.isFinish = true;
+                    if (xhr.status == 200 && xhr.responseText != '') {
+                        var result = JSON.parse(xhr.responseText);
+                        _this.task.isSuccess = true;
+                        _this.task.result = result;
+                        _this.task.endDate = new Date();
+                        _this.uploader.listener.onTaskSuccess(_this.task);
+                        resolve();
+                    }
+                    else if (_this.retryTask(_this.task)) {
+                        Debug.w(_this.task.file.name + "\u5206\u5757\u4E0A\u4F20\u5931\u8D25,\u51C6\u5907\u5F00\u59CB\u91CD\u4F20");
+                        _this.uploader.listener.onTaskRetry(_this.task);
+                    }
+                    else {
+                        reject(xhr.response);
+                    }
+                }
+            };
+            xhr.send(ctxListString);
+        });
     };
     /**
      * 获取块上传的url
@@ -966,6 +1168,18 @@ var ChunkUploadPattern = (function () {
             return this.uploader.domain + "/mkfile/" + fileSize;
         }
     };
+    ChunkUploadPattern.prototype.retryTask = function (task) {
+        //达到重试次数
+        if (task.retry >= this.uploader.retry) {
+            Debug.w(task.file.name + "\u8FBE\u5230\u91CD\u4F20\u6B21\u6570\u4E0A\u9650" + this.uploader.retry + ",\u505C\u6B62\u91CD\u4F20");
+            return false;
+        }
+        task.retry++;
+        Debug.w(task.file.name + "\u5F00\u59CB\u91CD\u4F20,\u5F53\u524D\u91CD\u4F20\u6B21\u6570" + task.retry);
+        // this.upload(task);
+        //todo
+        return true;
+    };
     return ChunkUploadPattern;
 }());
 
@@ -975,7 +1189,7 @@ var Uploader = (function () {
         this.FILE_INPUT_EL_ID = 'qiniu4js-input';
         this._taskQueue = []; //任务队列
         this._tasking = false; //任务执行中
-        this._scale = []; //缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
+        this._scale = []; //缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
         /**
          * 处理文件
          */
@@ -1101,6 +1315,22 @@ var Uploader = (function () {
         Debug.d("uploader已重置");
     };
     /**
+     * 是否是分块任务
+     * @param task
+     * @returns {boolean}
+     */
+    Uploader.isChunkTask = function (task) {
+        return task.constructor.name === ChunkTask.name && task instanceof ChunkTask;
+    };
+    /**
+     * 是否是直传任务
+     * @param task
+     * @returns {boolean}
+     */
+    Uploader.isDirectTask = function (task) {
+        return task.constructor.name === DirectTask.name && task instanceof DirectTask;
+    };
+    /**
      * 生成task
      */
     Uploader.prototype.generateTask = function () {
@@ -1127,54 +1357,61 @@ var Uploader = (function () {
     Uploader.prototype.handleImages = function () {
         return __awaiter(this, void 0, Promise, function* () {
             var promises = [];
-            var _loop_1 = function(task) {
-                if (!task.file.type.match('image.*')) {
-                    return "continue";
+            if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
+                var _loop_1 = function(task) {
+                    if (!task.file.type.match('image.*')) {
+                        return "continue";
+                    }
+                    Debug.d(task.file.name + " \u5904\u7406\u524D\u7684\u56FE\u7247\u5927\u5C0F:" + task.file.size / 1024 + "kb");
+                    var canvas = document.createElement('canvas');
+                    var img = new Image();
+                    var ctx = canvas.getContext('2d');
+                    img.src = URL.createObjectURL(task.file);
+                    var _this = this_1;
+                    var promise = new Promise(function (resolve) {
+                        img.onload = function () {
+                            var imgW = img.width;
+                            var imgH = img.height;
+                            var scaleW = _this.scale[0];
+                            var scaleH = _this.scale[1];
+                            if (scaleW == 0 && scaleH > 0) {
+                                canvas.width = imgW / imgH * scaleH;
+                                canvas.height = scaleH;
+                            }
+                            else if (scaleH == 0 && scaleW > 0) {
+                                canvas.width = scaleW;
+                                canvas.height = imgH / imgW * scaleW;
+                            }
+                            else if (scaleW > 0 && scaleH > 0) {
+                                canvas.width = scaleW;
+                                canvas.height = scaleH;
+                            }
+                            else {
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                            }
+                            //这里的长宽是绘制到画布上的图片的长宽
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
+                            canvas.toBlob(function (blob) {
+                                resolve(blob);
+                                Debug.d(task.file.name + " \u5904\u7406\u540E\u7684\u56FE\u7247\u5927\u5C0F:" + blob.size / 1024 + "kb");
+                            }, "image/jpeg", _this.compress * 0.95);
+                        };
+                    }).then(function (blob) {
+                        blob.name = task.file.name;
+                        task.file = blob;
+                        if (Uploader.isChunkTask(task)) {
+                            task.spliceFile2Block();
+                        }
+                    });
+                    promises.push(promise);
+                };
+                var this_1 = this;
+                for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
+                    var task = _a[_i];
+                    _loop_1(task);
                 }
-                Debug.d(task.file.name + " \u7684\u5927\u5C0F:" + task.file.size / 1024 + "kb");
-                var canvas = document.createElement('canvas');
-                var img = new Image();
-                var ctx = canvas.getContext('2d');
-                img.src = URL.createObjectURL(task.file);
-                var _this = this_1;
-                var promise = new Promise(function (resolve) {
-                    img.onload = function () {
-                        var imgW = img.width;
-                        var imgH = img.height;
-                        var scaleW = _this.scale[0];
-                        var scaleH = _this.scale[1];
-                        if (scaleW <= 0 && scaleH > 0) {
-                            canvas.width = imgW / imgH * scaleH;
-                            canvas.height = scaleH;
-                        }
-                        else if (scaleH <= 0 && scaleW > 0) {
-                            canvas.width = scaleW;
-                            canvas.height = imgH / imgW * scaleW;
-                        }
-                        else if (scaleW > 0 && scaleH > 0) {
-                            canvas.width = scaleW;
-                            canvas.height = scaleH;
-                        }
-                        else {
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                        }
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        canvas.toBlob(function (blob) {
-                            resolve(blob);
-                            Debug.d(task.file.name + " \u538B\u7F29\u540E\u7684\u5927\u5C0F:" + blob.size / 1024 + "kb");
-                        }, "image/jpeg", _this.compress);
-                    };
-                }).then(function (blob) {
-                    blob.name = task.file.name;
-                    task.file = blob;
-                });
-                promises.push(promise);
-            };
-            var this_1 = this;
-            for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
-                var task = _a[_i];
-                _loop_1(task);
             }
             return Promise.all(promises);
         });
@@ -1186,8 +1423,8 @@ var Uploader = (function () {
         if (!this.tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
-        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2) {
-            throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度');
+        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
+            throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度,必须大于等于0');
         }
     };
     /**
@@ -1204,12 +1441,13 @@ var Uploader = (function () {
         //遍历任务队列
         for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
             var task = _a[_i];
+            Debug.d("\u6587\u4EF6-\u300E" + task.file.name + "\u300F-" + task.file.size + "byte-" + task.file.size / 1024 + "kb-" + task.file.size / 1024 / 1024 + "mb");
             //根据任务的类型调用不同的上传模式进行上传
-            if (task.constructor.name === DirectTask.name && task instanceof DirectTask) {
+            if (Uploader.isDirectTask(task)) {
                 //直传
                 this._directUploadPattern.upload(task);
             }
-            else if (task.constructor.name === ChunkTask.name && task instanceof ChunkTask) {
+            else if (Uploader.isChunkTask(task)) {
                 //分块上传
                 this._chunkUploadPattern.upload(task);
             }
