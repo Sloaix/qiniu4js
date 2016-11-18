@@ -1,44 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Title</title>
+    <meta charset="UTF-8">
+    <title>Title</title>
 </head>
 <body>
 <button id="button">
-	上传文件
+    上传文件
 </button>
 <script src="../dist/qiniu4js.js"></script>
 <script>
-	window.onload = function () {
-		var qiniu = new Qiniu.UploaderBuilder()
-				.debug(true)
-				.compress(0.5)
-				.scale([100, 50])
-				.accept()
-				.tokenFunc(function (setToken) {
-					var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:6pRDj7_EFqZ3-FVDhBr2B9hnDYE=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3ODY3OTI5NX0=";
-					setTimeout(function () {
-						setToken(token);
-					}, 1000)
-				})
-				.listener({
-					onTaskProgress(task){
-						console.log(task.progress);
-					},
-					onTaskSuccess(task){
-						console.log(task.result);
-					},
-					onTaskGetKey(task){
+    window.onload = function () {
+        var qiniu = new Qiniu.UploaderBuilder()
+            .debug(true)
+            .compress(0.5)
+            .scale([100, 50])
+            .chunk(true)
+            .tokenFunc(function (setToken) {
+                var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:mgik0WRf__ju0g7nNBZhHm3GcSU=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3OTQ3MDE2NX0=";
+                setTimeout(function () {
+                    setToken(token);
+                }, 0);
+            })
+            .listener({
+                onTaskProgress(task){
+                    console.log(task.progress);
+                },
+                onTaskSuccess(task){
+                    console.log(task.result);
+                },
+                onTaskGetKey(task){
 //						console.log("onTaskGetKey");
 //						return "test.png";
-					},
-				}).build();
-		button = document.getElementById('button');
-		button.addEventListener("click", function () {
-			qiniu.chooseFile();
-		});
-	};
+                },
+            }).build();
+        button = document.getElementById('button');
+        button.addEventListener("click", function () {
+            qiniu.chooseFile();
+        });
+    };
 </script>
 </body>
 </html>

@@ -19,12 +19,12 @@ abstract class BaseTask {
         this._createDate = new Date();
     }
 
-    get file(): File {
+    public get file(): File {
         return this._file;
     }
 
-    set file(value: File) {
-        this._file = value;
+    public set file(file: File) {
+        this._file = file;
     }
 
     get retry(): Number {

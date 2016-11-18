@@ -27,7 +27,7 @@ class Uploader {
     private _multiple: boolean;//是否支持多文件
     private _accept: string[];//接受的文件类型
     private _compress: number;//图片压缩质量
-    private _scale: number[] = [];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
+    private _scale: number[] = [];//缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
     private _tokenFunc: Function;//token获取函数
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
@@ -81,7 +81,7 @@ class Uploader {
     private initFileInputEl(): void {
 
         //查询已经存在的file input
-        let exist: HTMLInputElement = document.getElementById(this._fileInputId);
+        let exist: HTMLInputElement = <HTMLInputElement> document.getElementById(this._fileInputId);
 
         //创建input元素
         this._fileInput = exist ? exist : document.createElement('input');
@@ -131,7 +131,7 @@ class Uploader {
     /**
      * 处理文件
      */
-    private handleFiles = ()=> {
+    private handleFiles = () => {
         //如果没有选中文件就返回
         if (this.fileInput.files.length == 0) {
             return;
@@ -172,7 +172,7 @@ class Uploader {
 
 
         //处理图片
-        this.handleImages().then((file)=> {
+        this.handleImages().then((file) => {
             //自动上传
             if (this.auto) {
                 debug.d("开始自动上传");
@@ -181,6 +181,24 @@ class Uploader {
         });
     };
 
+
+    /**
+     * 是否是分块任务
+     * @param task
+     * @returns {boolean}
+     */
+    private static isChunkTask(task: BaseTask): boolean {
+        return task.constructor.name === ChunkTask.name && task instanceof ChunkTask;
+    }
+
+    /**
+     * 是否是直传任务
+     * @param task
+     * @returns {boolean}
+     */
+    private static isDirectTask(task: BaseTask): boolean {
+        return task.constructor.name === DirectTask.name && task instanceof DirectTask;
+    }
 
     /**
      * 生成task
@@ -212,59 +230,66 @@ class Uploader {
      */
     private async handleImages(): Promise {
         let promises: Promise[] = [];
-        for (let task: BaseTask of this.taskQueue) {
-            if (!task.file.type.match('image.*')) {
-                continue;
-            }
-            debug.d(`${task.file.name} 的大小:${task.file.size / 1024}kb`);
 
-            let canvas: HTMLCanvasElement = <HTMLCanvasElement> document.createElement('canvas');
-
-            let img: HTMLImageElement = new Image();
-            let ctx: CanvasRenderingContext2D = <CanvasRenderingContext2D>canvas.getContext('2d');
-            img.src = URL.createObjectURL(task.file);
-
-            let _this = this;
-            let promise: Promise = new Promise<Blob>((resolve) => {
-                img.onload = function () {
-
-                    let imgW = img.width;
-                    let imgH = img.height;
-
-                    let scaleW = _this.scale[0];
-                    let scaleH = _this.scale[1];
-
-                    if (scaleW <= 0 && scaleH > 0) {
-                        canvas.width = imgW / imgH * scaleH;
-                        canvas.height = scaleH;
-                    }
-                    else if (scaleH <= 0 && scaleW > 0) {
-                        canvas.width = scaleW;
-                        canvas.height = imgH / imgW * scaleW;
-                    }
-                    else if (scaleW > 0 && scaleH > 0) {
-                        canvas.width = scaleW;
-                        canvas.height = scaleH;
-                    }
-                    else {
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                    }
-
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                    canvas.toBlob((blob: Blob)=> {
-                        resolve(blob);
-                        debug.d(`${task.file.name} 压缩后的大小:${blob.size / 1024}kb`)
-                    }, "image/jpeg", _this.compress);
+        if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
+            for (let task: BaseTask of this.taskQueue) {
+                if (!task.file.type.match('image.*')) {
+                    continue;
                 }
-            }).then((blob: any)=> {
-                blob.name = task.file.name;
-                task.file = blob;
-            });
-            promises.push(promise);
-        }
+                debug.d(`${task.file.name} 处理前的图片大小:${task.file.size / 1024}kb`);
 
+                let canvas: HTMLCanvasElement = <HTMLCanvasElement> document.createElement('canvas');
+
+                let img: HTMLImageElement = new Image();
+                let ctx: CanvasRenderingContext2D = <CanvasRenderingContext2D>canvas.getContext('2d');
+                img.src = URL.createObjectURL(task.file);
+
+                let _this = this;
+                let promise: Promise = new Promise<Blob>((resolve) => {
+                    img.onload = function () {
+
+                        let imgW = img.width;
+                        let imgH = img.height;
+
+                        let scaleW = _this.scale[0];
+                        let scaleH = _this.scale[1];
+
+                        if (scaleW == 0 && scaleH > 0) {
+                            canvas.width = imgW / imgH * scaleH;
+                            canvas.height = scaleH;
+                        }
+                        else if (scaleH == 0 && scaleW > 0) {
+                            canvas.width = scaleW;
+                            canvas.height = imgH / imgW * scaleW;
+                        }
+                        else if (scaleW > 0 && scaleH > 0) {
+                            canvas.width = scaleW;
+                            canvas.height = scaleH;
+                        }
+                        else {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                        }
+
+                        //这里的长宽是绘制到画布上的图片的长宽
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
+                        canvas.toBlob((blob: Blob) => {
+                            resolve(blob);
+                            debug.d(`${task.file.name} 处理后的图片大小:${blob.size / 1024}kb`)
+                        }, "image/jpeg", _this.compress * 0.95);
+                    }
+                }).then((blob: any) => {
+                    blob.name = task.file.name;
+                    task.file = blob;
+                    if (Uploader.isChunkTask(task)) {
+                        (<ChunkTask>task).spliceFile2Block();
+                    }
+                });
+                promises.push(promise);
+            }
+        }
         return Promise.all(promises);
     }
 
@@ -275,8 +300,8 @@ class Uploader {
         if (!this.tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
-        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2) {
-            throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度');
+        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
+            throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度,必须大于等于0');
         }
     }
 
@@ -296,14 +321,15 @@ class Uploader {
 
         //遍历任务队列
         for (let task: BaseTask of this.taskQueue) {
+            debug.d(`文件-『${task.file.name}』-${task.file.size}byte-${task.file.size / 1024}kb-${task.file.size / 1024 / 1024}mb`);
             //根据任务的类型调用不同的上传模式进行上传
-            if (task.constructor.name === DirectTask.name && task instanceof DirectTask) {
+            if (Uploader.isDirectTask(task)) {
                 //直传
-                this._directUploadPattern.upload(task);
+                this._directUploadPattern.upload(<DirectTask>task);
             }
-            else if (task.constructor.name === ChunkTask.name && task instanceof ChunkTask) {
+            else if (Uploader.isChunkTask(task)) {
                 //分块上传
-                this._chunkUploadPattern.upload(task);
+                this._chunkUploadPattern.upload(<ChunkTask>task);
             }
             else {
                 throw new Error('非法的task类型');

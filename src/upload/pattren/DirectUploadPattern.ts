@@ -12,14 +12,18 @@ class DirectUploadPattern implements IUploadPattern {
         this.uploader = uploader;
     }
 
+    /**
+     * 实现接口的上传方法
+     * @param task
+     */
     upload(task: DirectTask): void {
         let xhr: XMLHttpRequest = new XMLHttpRequest();
 
         //上传中
-        xhr.upload.onprogress = (e: ProgressEvent)=> {
+        xhr.upload.onprogress = (e: ProgressEvent) => {
             if (e.lengthComputable) {
                 let progress = Math.round((e.loaded * 100) / e.total);
-                if (task.progress != progress) {
+                if (task.progress < progress) {
                     task.progress = progress;
                     this.uploader.listener.onTaskProgress(task);
                 }
@@ -27,8 +31,8 @@ class DirectUploadPattern implements IUploadPattern {
         };
 
         //上传完成
-        xhr.upload.onload = ()=> {
-            if (task.progress != 100) {
+        xhr.upload.onload = () => {
+            if (task.progress < 100) {
                 task.progress = 100;
                 this.uploader.listener.onTaskProgress(task);
             }
@@ -36,10 +40,11 @@ class DirectUploadPattern implements IUploadPattern {
 
 
         let url = this.uploader.domain;
+        //避免浏览器缓存http请求
         url += ((/\?/).test(this.uploader.domain) ? "&" : "?") + (new Date()).getTime();
         xhr.open('POST', url, true);
 
-        xhr.onreadystatechange = ()=> {
+        xhr.onreadystatechange = () => {
             if (xhr.readyState == XMLHttpRequest.DONE) {
                 if (xhr.status == 200 && xhr.responseText != '') {
                     task.result = JSON.parse(xhr.responseText);
@@ -48,24 +53,17 @@ class DirectUploadPattern implements IUploadPattern {
                     task.endDate = new Date();
                     this.uploader.listener.onTaskSuccess(task);
                 }
+                else if (this.retryTask(task)) {
+                    debug.w(`${task.file.name}上传失败,准备开始重传`);
+                    this.uploader.listener.onTaskRetry(task);
+                }
                 else {
-                    if (this.retryTask(task)) {
-                        debug.w(`${task.file.name}上传失败,准备开始重传`);
-                        this.uploader.listener.onTaskRetry(task);
-                    }
-                    else {
-                        debug.w(`${task.file.name}上传失败`);
-                        try {
-                            task.error = JSON.parse(xhr.responseText);
-                        }
-                        catch (error: Error) {
-                            task.error = xhr.response;
-                        }
-                        task.isSuccess = false;
-                        task.isFinish = true;
-                        task.endDate = new Date();
-                        this.uploader.listener.onTaskFail(task);
-                    }
+                    debug.w(`${task.file.name}上传失败`);
+                    task.error = xhr.response;
+                    task.isSuccess = false;
+                    task.isFinish = true;
+                    task.endDate = new Date();
+                    this.uploader.listener.onTaskFail(task);
                 }
 
                 //所有任务都结束了
@@ -73,21 +71,22 @@ class DirectUploadPattern implements IUploadPattern {
                     //更改任务执行中标志
                     this.uploader.tasking = false;
 
-                    //监听器调用
+                    //onFinish callback
                     this.uploader.listener.onFinish(this.uploader.taskQueue);
                 }
             }
         };
 
         if (this.uploader.tokenShare && this.uploader.token) {
+            debug.d(`使用上次token进行上传`);
             task.startDate = new Date();
             let formData: FormData = DirectUploadPattern.createFormData(task, this.uploader.token);
             xhr.send(formData);
         }
         else {
-            debug.d(`开始获取token`);
-            this.uploader.tokenFunc((token: string)=> {
-                debug.d(`token获取成功 ${token}`);
+            debug.d(`开始获取上传token`);
+            this.uploader.tokenFunc((token: string) => {
+                debug.d(`上传token获取成功 ${token}`);
                 this.uploader.token = token;
                 task.startDate = new Date();
                 let formData: FormData = DirectUploadPattern.createFormData(task, this.uploader.token);
@@ -97,9 +96,17 @@ class DirectUploadPattern implements IUploadPattern {
     }
 
 
+    /**
+     * 创建表单
+     * @param task
+     * @param token
+     * @returns {FormData}
+     */
     private static createFormData(task: DirectTask, token: String): FormData {
 
         let formData: FormData = new FormData();
+
+        //key存在，添加到formData中，若不设置，七牛服务器会自动生成hash key
         if (task.key !== null && task.key !== undefined) {
             formData.append('key', task.key);
         }
@@ -113,6 +120,11 @@ class DirectUploadPattern implements IUploadPattern {
     }
 
 
+    /**
+     * 重传
+     * @param task
+     * @returns {boolean}
+     */
     private retryTask(task: DirectTask): boolean {
         //达到重试次数
         if (task.retry >= this.uploader.retry) {
