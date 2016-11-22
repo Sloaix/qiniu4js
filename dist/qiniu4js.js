@@ -156,7 +156,7 @@ var BaseTask = (function () {
 var DirectTask = (function (_super) {
     __extends(DirectTask, _super);
     function DirectTask() {
-        _super.apply(this, arguments);
+        return _super.apply(this, arguments) || this;
     }
     return DirectTask;
 }(BaseTask));
@@ -173,14 +173,15 @@ var ChunkTask = (function (_super) {
      * @param chunkSize 片大小
      */
     function ChunkTask(file, blockSize, chunkSize) {
-        _super.call(this, file);
+        var _this = _super.call(this, file) || this;
         //分块
-        this._blocks = [];
-        this._blockSize = 0;
-        this._chunkSize = 0;
-        this._blockSize = blockSize;
-        this._chunkSize = chunkSize;
-        this.spliceFile2Block();
+        _this._blocks = [];
+        _this._blockSize = 0;
+        _this._chunkSize = 0;
+        _this._blockSize = blockSize;
+        _this._chunkSize = chunkSize;
+        _this.spliceFile2Block();
+        return _this;
     }
     /**
      * 将文件分块
@@ -783,11 +784,11 @@ var UploaderBuilder = (function () {
     UploaderBuilder.prototype.build = function () {
         return new Uploader(this);
     };
-    UploaderBuilder.MAX_CHUNK_SIZE = 4 * 1024 * 1024; //分片最大值
-    UploaderBuilder.BLOCK_SIZE = UploaderBuilder.MAX_CHUNK_SIZE; //分块大小，只有大于这个数才需要分块
-    UploaderBuilder.UPLOAD_URL = 'http://upload.qiniu.com';
     return UploaderBuilder;
 }());
+UploaderBuilder.MAX_CHUNK_SIZE = 4 * 1024 * 1024; //分片最大值
+UploaderBuilder.BLOCK_SIZE = UploaderBuilder.MAX_CHUNK_SIZE; //分块大小，只有大于这个数才需要分块
+UploaderBuilder.UPLOAD_URL = 'http://upload.qiniu.com';
 
 var Debug = (function () {
     function Debug() {
@@ -833,9 +834,9 @@ var Debug = (function () {
         }
         console.info(object);
     };
-    Debug._enable = true;
     return Debug;
 }());
+Debug._enable = true;
 
 var SimpleUploadListener = (function () {
     function SimpleUploadListener() {
@@ -1011,7 +1012,7 @@ var ChunkUploadPattern = (function () {
         var chain = Promise.resolve();
         for (var _i = 0, _a = this.task.blocks; _i < _a.length; _i++) {
             var block = _a[_i];
-            var _loop_1 = function(chunk) {
+            var _loop_1 = function (chunk) {
                 chain = chain.then(function () {
                     return _this.uploadChunk(chunk, _this.uploader.token);
                 });
@@ -1031,7 +1032,7 @@ var ChunkUploadPattern = (function () {
                 //监听器调用
                 _this.uploader.listener.onFinish(_this.uploader.taskQueue);
             }
-        }).catch(function (response) {
+        })["catch"](function (response) {
             Debug.w(_this.task.file.name + "\u5206\u5757\u4E0A\u4F20\u5931\u8D25");
             _this.task.error = response;
             _this.task.isSuccess = false;
@@ -1355,65 +1356,68 @@ var Uploader = (function () {
      * 处理图片-缩放-质量压缩
      */
     Uploader.prototype.handleImages = function () {
-        return __awaiter(this, void 0, Promise, function* () {
-            var promises = [];
-            if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
-                var _loop_1 = function(task) {
-                    if (!task.file.type.match('image.*')) {
-                        return "continue";
-                    }
-                    Debug.d(task.file.name + " \u5904\u7406\u524D\u7684\u56FE\u7247\u5927\u5C0F:" + task.file.size / 1024 + "kb");
-                    var canvas = document.createElement('canvas');
-                    var img = new Image();
-                    var ctx = canvas.getContext('2d');
-                    img.src = URL.createObjectURL(task.file);
-                    var _this = this_1;
-                    var promise = new Promise(function (resolve) {
-                        img.onload = function () {
-                            var imgW = img.width;
-                            var imgH = img.height;
-                            var scaleW = _this.scale[0];
-                            var scaleH = _this.scale[1];
-                            if (scaleW == 0 && scaleH > 0) {
-                                canvas.width = imgW / imgH * scaleH;
-                                canvas.height = scaleH;
-                            }
-                            else if (scaleH == 0 && scaleW > 0) {
-                                canvas.width = scaleW;
-                                canvas.height = imgH / imgW * scaleW;
-                            }
-                            else if (scaleW > 0 && scaleH > 0) {
-                                canvas.width = scaleW;
-                                canvas.height = scaleH;
-                            }
-                            else {
-                                canvas.width = img.width;
-                                canvas.height = img.height;
-                            }
-                            //这里的长宽是绘制到画布上的图片的长宽
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
-                            canvas.toBlob(function (blob) {
-                                resolve(blob);
-                                Debug.d(task.file.name + " \u5904\u7406\u540E\u7684\u56FE\u7247\u5927\u5C0F:" + blob.size / 1024 + "kb");
-                            }, "image/jpeg", _this.compress * 0.95);
-                        };
-                    }).then(function (blob) {
-                        blob.name = task.file.name;
-                        task.file = blob;
-                        if (Uploader.isChunkTask(task)) {
-                            task.spliceFile2Block();
+        return __awaiter(this, void 0, void 0, function () {
+            var promises, _loop_1, this_1, _i, _a, task;
+            return __generator(this, function (_b) {
+                promises = [];
+                if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
+                    _loop_1 = function (task) {
+                        if (!task.file.type.match('image.*')) {
+                            return "continue";
                         }
-                    });
-                    promises.push(promise);
-                };
-                var this_1 = this;
-                for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
-                    var task = _a[_i];
-                    _loop_1(task);
+                        Debug.d(task.file.name + " \u5904\u7406\u524D\u7684\u56FE\u7247\u5927\u5C0F:" + task.file.size / 1024 + "kb");
+                        var canvas = document.createElement('canvas');
+                        var img = new Image();
+                        var ctx = canvas.getContext('2d');
+                        img.src = URL.createObjectURL(task.file);
+                        var _this = this_1;
+                        var promise = new Promise(function (resolve) {
+                            img.onload = function () {
+                                var imgW = img.width;
+                                var imgH = img.height;
+                                var scaleW = _this.scale[0];
+                                var scaleH = _this.scale[1];
+                                if (scaleW == 0 && scaleH > 0) {
+                                    canvas.width = imgW / imgH * scaleH;
+                                    canvas.height = scaleH;
+                                }
+                                else if (scaleH == 0 && scaleW > 0) {
+                                    canvas.width = scaleW;
+                                    canvas.height = imgH / imgW * scaleW;
+                                }
+                                else if (scaleW > 0 && scaleH > 0) {
+                                    canvas.width = scaleW;
+                                    canvas.height = scaleH;
+                                }
+                                else {
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                }
+                                //这里的长宽是绘制到画布上的图片的长宽
+                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
+                                canvas.toBlob(function (blob) {
+                                    resolve(blob);
+                                    Debug.d(task.file.name + " \u5904\u7406\u540E\u7684\u56FE\u7247\u5927\u5C0F:" + blob.size / 1024 + "kb");
+                                }, "image/jpeg", _this.compress * 0.95);
+                            };
+                        }).then(function (blob) {
+                            blob.name = task.file.name;
+                            task.file = blob;
+                            if (Uploader.isChunkTask(task)) {
+                                task.spliceFile2Block();
+                            }
+                        });
+                        promises.push(promise);
+                    };
+                    this_1 = this;
+                    for (_i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
+                        task = _a[_i];
+                        _loop_1(task);
+                    }
                 }
-            }
-            return Promise.all(promises);
+                return [2 /*return*/, Promise.all(promises)];
+            });
         });
     };
     /**
