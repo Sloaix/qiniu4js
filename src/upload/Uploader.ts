@@ -172,7 +172,7 @@ class Uploader {
 
 
         //处理图片
-        this.handleImages().then((file) => {
+        this.handleImages().then(() => {
             //自动上传
             if (this.auto) {
                 debug.d("开始自动上传");
@@ -228,8 +228,8 @@ class Uploader {
     /**
      * 处理图片-缩放-质量压缩
      */
-    private async handleImages(): Promise {
-        let promises: Promise[] = [];
+    private handleImages(): Promise {
+        let promises: Promise<Blob>[] = [];
 
         if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
             for (let task: BaseTask of this.taskQueue) {
@@ -245,8 +245,9 @@ class Uploader {
                 img.src = URL.createObjectURL(task.file);
 
                 let _this = this;
-                let promise: Promise = new Promise<Blob>((resolve) => {
-                    img.onload = function () {
+
+                promises.push(new Promise<Blob>((resolve) =>
+                    img.onload = () => {
 
                         let imgW = img.width;
                         let imgH = img.height;
@@ -280,14 +281,13 @@ class Uploader {
                             debug.d(`${task.file.name} 处理后的图片大小:${blob.size / 1024}kb`)
                         }, "image/jpeg", _this.compress * 0.95);
                     }
-                }).then((blob: any) => {
+                ).then((blob: any) => {
                     blob.name = task.file.name;
                     task.file = blob;
                     if (Uploader.isChunkTask(task)) {
                         (<ChunkTask>task).spliceFile2Block();
                     }
-                });
-                promises.push(promise);
+                }));
             }
         }
         return Promise.all(promises);
@@ -426,9 +426,10 @@ class Uploader {
         this._tasking = value;
     }
 
-    get fileInputId(): string {
-        return this._fileInputId;
-    }
+    //
+    // get fileInputId(): string {
+    //     return this._fileInputId;
+    // }
 
     get interceptors(): Interceptor[] {
         return this._interceptors;
