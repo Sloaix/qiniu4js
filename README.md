@@ -142,8 +142,8 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
-- 1.0.2 (2016-11-22)
-    - fix typescript导致的qiniu4js.es.js无法uglify。
+- 1.0.3 (2016-11-22)
+    - fix typescript编译出错导致无法被uglify。
 
 - 1.0.1 (2016-11-18)
     - 图片缩放后，无法分块上传的问题。

@@ -10,21 +10,6 @@ function __extends(d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 }
 
-
-
-
-
-
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator.throw(value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments)).next());
-    });
-}
-
 /**
  * 上传任务
  */
@@ -1230,7 +1215,7 @@ var Uploader = (function () {
             //回调函数函数
             _this.listener.onReady(_this.taskQueue);
             //处理图片
-            _this.handleImages().then(function (file) {
+            _this.handleImages().then(function () {
                 //自动上传
                 if (_this.auto) {
                     Debug.d("开始自动上传");
@@ -1356,69 +1341,63 @@ var Uploader = (function () {
      * 处理图片-缩放-质量压缩
      */
     Uploader.prototype.handleImages = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var promises, _loop_1, this_1, _i, _a, task;
-            return __generator(this, function (_b) {
-                promises = [];
-                if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
-                    _loop_1 = function (task) {
-                        if (!task.file.type.match('image.*')) {
-                            return "continue";
-                        }
-                        Debug.d(task.file.name + " \u5904\u7406\u524D\u7684\u56FE\u7247\u5927\u5C0F:" + task.file.size / 1024 + "kb");
-                        var canvas = document.createElement('canvas');
-                        var img = new Image();
-                        var ctx = canvas.getContext('2d');
-                        img.src = URL.createObjectURL(task.file);
-                        var _this = this_1;
-                        var promise = new Promise(function (resolve) {
-                            img.onload = function () {
-                                var imgW = img.width;
-                                var imgH = img.height;
-                                var scaleW = _this.scale[0];
-                                var scaleH = _this.scale[1];
-                                if (scaleW == 0 && scaleH > 0) {
-                                    canvas.width = imgW / imgH * scaleH;
-                                    canvas.height = scaleH;
-                                }
-                                else if (scaleH == 0 && scaleW > 0) {
-                                    canvas.width = scaleW;
-                                    canvas.height = imgH / imgW * scaleW;
-                                }
-                                else if (scaleW > 0 && scaleH > 0) {
-                                    canvas.width = scaleW;
-                                    canvas.height = scaleH;
-                                }
-                                else {
-                                    canvas.width = img.width;
-                                    canvas.height = img.height;
-                                }
-                                //这里的长宽是绘制到画布上的图片的长宽
-                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
-                                canvas.toBlob(function (blob) {
-                                    resolve(blob);
-                                    Debug.d(task.file.name + " \u5904\u7406\u540E\u7684\u56FE\u7247\u5927\u5C0F:" + blob.size / 1024 + "kb");
-                                }, "image/jpeg", _this.compress * 0.95);
-                            };
-                        }).then(function (blob) {
-                            blob.name = task.file.name;
-                            task.file = blob;
-                            if (Uploader.isChunkTask(task)) {
-                                task.spliceFile2Block();
-                            }
-                        });
-                        promises.push(promise);
-                    };
-                    this_1 = this;
-                    for (_i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
-                        task = _a[_i];
-                        _loop_1(task);
-                    }
+        var promises = [];
+        if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
+            var _loop_1 = function (task) {
+                if (!task.file.type.match('image.*')) {
+                    return "continue";
                 }
-                return [2 /*return*/, Promise.all(promises)];
-            });
-        });
+                Debug.d(task.file.name + " \u5904\u7406\u524D\u7684\u56FE\u7247\u5927\u5C0F:" + task.file.size / 1024 + "kb");
+                var canvas = document.createElement('canvas');
+                var img = new Image();
+                var ctx = canvas.getContext('2d');
+                img.src = URL.createObjectURL(task.file);
+                var _this = this_1;
+                promises.push(new Promise(function (resolve) {
+                    return img.onload = function () {
+                        var imgW = img.width;
+                        var imgH = img.height;
+                        var scaleW = _this.scale[0];
+                        var scaleH = _this.scale[1];
+                        if (scaleW == 0 && scaleH > 0) {
+                            canvas.width = imgW / imgH * scaleH;
+                            canvas.height = scaleH;
+                        }
+                        else if (scaleH == 0 && scaleW > 0) {
+                            canvas.width = scaleW;
+                            canvas.height = imgH / imgW * scaleW;
+                        }
+                        else if (scaleW > 0 && scaleH > 0) {
+                            canvas.width = scaleW;
+                            canvas.height = scaleH;
+                        }
+                        else {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                        }
+                        //这里的长宽是绘制到画布上的图片的长宽
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
+                        canvas.toBlob(function (blob) {
+                            resolve(blob);
+                            Debug.d(task.file.name + " \u5904\u7406\u540E\u7684\u56FE\u7247\u5927\u5C0F:" + blob.size / 1024 + "kb");
+                        }, "image/jpeg", _this.compress * 0.95);
+                    };
+                }).then(function (blob) {
+                    blob.name = task.file.name;
+                    task.file = blob;
+                    if (Uploader.isChunkTask(task)) {
+                        task.spliceFile2Block();
+                    }
+                }));
+            };
+            var this_1 = this;
+            for (var _i = 0, _a = this.taskQueue; _i < _a.length; _i++) {
+                var task = _a[_i];
+                _loop_1(task);
+            }
+        }
+        return Promise.all(promises);
     };
     /**
      * 检验选项合法性
@@ -1590,14 +1569,11 @@ var Uploader = (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Uploader.prototype, "fileInputId", {
-        get: function () {
-            return this._fileInputId;
-        },
-        enumerable: true,
-        configurable: true
-    });
     Object.defineProperty(Uploader.prototype, "interceptors", {
+        //
+        // get fileInputId(): string {
+        //     return this._fileInputId;
+        // }
         get: function () {
             return this._interceptors;
         },
