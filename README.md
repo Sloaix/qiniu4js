@@ -142,8 +142,11 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
-- 1.0.5 (2016-11-24)
+- 1.0.6 (2016-11-25)
     - 修复微信x5内核不支持Object.assign的问题，添加Object.assign polyfill.
+    - 微信x5 对input.accept属性做了限制，如果要上传图片请使用accept(['image/*'])
+    - Canvas.toBlob polyfill
+    - String.endsWith polyfill
 
 - 1.0.3 (2016-11-22)
     - fix typescript编译出错导致无法被uglify。

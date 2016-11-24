@@ -1,8 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="width: 100%;height: 100%">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+        }
+
+        #button {
+            height: 100%;
+            width: 100%;
+            font-size: 60px;
+        }
+    </style>
 </head>
 <body>
 <button id="button">
@@ -10,24 +22,55 @@
 </button>
 <script src="dist/qiniu4js.js"></script>
 <script>
+    function getPreviewImage(blob, cb) {
+        console.log('getPreviewImage');
+        var canvas = document.createElement('canvas');
+        var img = new Image();
+        var ctx = canvas.getContext('2d');
+        img.src = URL.createObjectURL(blob);
+        img.onload = function () {
+            console.log('img.onload');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            var base64 = canvas.toDataURL("image/jpeg", 0.95);
+            cb(base64);
+        };
+    }
+
     window.onload = function () {
         var qiniu = new Qiniu.UploaderBuilder()
             .debug(true)
             .compress(0.5)
-            .scale([100, 50])
-            .chunk(true)
+            .scale([640, 0])
+            .tokenShare(false)
+            .multiple(false)
+            .accept(['image/*'])
             .tokenFunc(function (setToken) {
                 var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:mgik0WRf__ju0g7nNBZhHm3GcSU=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3OTQ3MDE2NX0=";
-                setTimeout(function () {
-                    setToken(token);
-                }, 20);
-            })
-            .listener({
-                onTaskProgress: function (task) {
-                },
-                onTaskSuccess: function (task) {
-                },
-                onTaskGetKey: function (task) {
+                setToken(token);
+            }).listener({
+                onReady: function (tasks) {
+                    console.log('onReady');
+                    //获取图片的base64编码
+                    for (var i = 0; i < tasks.length; i++) {
+                        var task = tasks[i];
+                        getPreviewImage(task.file, function (base64) {
+                            console.log(base64);
+                        });
+                    }
+                }, onStart: function (tasks) {
+                    console.log('onStart');
+                }, onTaskProgress: function (task) {
+                    console.log('onTaskProgress');
+                }, onTaskSuccess: function (task) {
+                    console.log('onTaskSuccess');
+                }, onTaskFail: function (task) {
+                    console.log('onTaskFail');
+                }, onTaskRetry: function (task) {
+                    console.log('onTaskRetry');
+                }, onFinish: function (tasks) {
+                    console.log('onFinish');
                 }
             }).build();
         button = document.getElementById('button');
