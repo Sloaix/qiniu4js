@@ -1248,7 +1248,6 @@ var Uploader = (function () {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
-        this._listener = new SimpleUploadListener();
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
         this._fileInputId = this.FILE_INPUT_EL_ID + "_" + new Date().getTime();
