@@ -142,6 +142,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 1.0.4 (2016-11-24)
+    - 修复微信x5内核不支持Object.assign的问题，添加Object.assign polyfill.
+
 - 1.0.3 (2016-11-22)
     - fix typescript编译出错导致无法被uglify。
 
