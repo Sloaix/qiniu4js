@@ -8,7 +8,7 @@ import UploadListener from "./hook/UploadListener";
 import SimpleUploadListener from "./hook/SimpleUploadListener";
 import DirectUploadPattern from "./pattren/DirectUploadPattern";
 import ChunkUploadPattern from "./pattren/ChunkUploadPattern";
-
+import '../util/Polyfill';
 
 class Uploader {
     private FILE_INPUT_EL_ID: string = 'qiniu4js-input';
@@ -46,6 +46,7 @@ class Uploader {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
+        this._listener = new SimpleUploadListener();
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;

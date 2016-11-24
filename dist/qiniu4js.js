@@ -1169,6 +1169,26 @@ var ChunkUploadPattern = (function () {
     return ChunkUploadPattern;
 }());
 
+if (typeof Object.assign != 'function') {
+    Object.assign = function (target) {
+        if (target == null) {
+            throw new TypeError('Cannot convert undefined or null to object');
+        }
+        target = Object(target);
+        for (var index = 1; index < arguments.length; index++) {
+            var source = arguments[index];
+            if (source != null) {
+                for (var key in source) {
+                    if (Object.prototype.hasOwnProperty.call(source, key)) {
+                        target[key] = source[key];
+                    }
+                }
+            }
+        }
+        return target;
+    };
+}
+
 var Uploader = (function () {
     function Uploader(builder) {
         var _this = this;
@@ -1234,6 +1254,7 @@ var Uploader = (function () {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
+        this._listener = new SimpleUploadListener();
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
         this._fileInputId = this.FILE_INPUT_EL_ID + "_" + new Date().getTime();

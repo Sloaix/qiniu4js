@@ -8,7 +8,7 @@
 <button id="button">
     上传文件
 </button>
-<script src="../dist/qiniu4js.js"></script>
+<script src="dist/qiniu4js.js"></script>
 <script>
     window.onload = function () {
         var qiniu = new Qiniu.UploaderBuilder()
@@ -20,19 +20,15 @@
                 var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:mgik0WRf__ju0g7nNBZhHm3GcSU=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3OTQ3MDE2NX0=";
                 setTimeout(function () {
                     setToken(token);
-                }, 0);
+                }, 20);
             })
             .listener({
-                onTaskProgress(task){
-                    console.log(task.progress);
+                onTaskProgress: function (task) {
                 },
-                onTaskSuccess(task){
-                    console.log(task.result);
+                onTaskSuccess: function (task) {
                 },
-                onTaskGetKey(task){
-//						console.log("onTaskGetKey");
-//						return "test.png";
-                },
+                onTaskGetKey: function (task) {
+                }
             }).build();
         button = document.getElementById('button');
         button.addEventListener("click", function () {
