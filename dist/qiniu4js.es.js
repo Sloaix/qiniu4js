@@ -1163,6 +1163,9 @@ var ChunkUploadPattern = (function () {
     return ChunkUploadPattern;
 }());
 
+/**
+ * Object.assign polyfill
+ */
 if (typeof Object.assign != 'function') {
     Object.assign = function (target) {
         if (target == null) {
@@ -1181,6 +1184,71 @@ if (typeof Object.assign != 'function') {
         }
         return target;
     };
+}
+/**
+ * canvas.toBlob polyfill
+ */
+if (!HTMLCanvasElement.prototype.toBlob) {
+    Object.defineProperty(HTMLCanvasElement.prototype, 'toBlob', {
+        value: function (callback, type, quality) {
+            var binStr = atob(this.toDataURL(type, quality).split(',')[1]), len = binStr.length, arr = new Uint8Array(len);
+            for (var i = 0; i < len; i++) {
+                arr[i] = binStr.charCodeAt(i);
+            }
+            callback(new Blob([arr], { type: type || 'image/png' }));
+        }
+    });
+}
+/**
+ * endsWith polyfill
+ */
+if (!String.prototype.endsWith) {
+    var toString_1 = {}.toString;
+    var endsWith = function (search) {
+        if (this == null) {
+            throw TypeError();
+        }
+        var string = String(this);
+        if (search && toString_1.call(search) == '[object RegExp]') {
+            throw TypeError();
+        }
+        var stringLength = string.length;
+        var searchString = String(search);
+        var searchLength = searchString.length;
+        var pos = stringLength;
+        if (arguments.length > 1) {
+            var position = arguments[1];
+            if (position !== undefined) {
+                // `ToInteger`
+                pos = position ? Number(position) : 0;
+                if (pos != pos) {
+                    pos = 0;
+                }
+            }
+        }
+        var end = Math.min(Math.max(pos, 0), stringLength);
+        var start = end - searchLength;
+        if (start < 0) {
+            return false;
+        }
+        var index = -1;
+        while (++index < searchLength) {
+            if (string.charCodeAt(start + index) != searchString.charCodeAt(index)) {
+                return false;
+            }
+        }
+        return true;
+    };
+    if (Object.defineProperty) {
+        Object.defineProperty(String.prototype, 'endsWith', {
+            'value': endsWith,
+            'configurable': true,
+            'writable': true
+        });
+    }
+    else {
+        String.prototype.endsWith = endsWith;
+    }
 }
 
 var Uploader = (function () {
@@ -1248,6 +1316,7 @@ var Uploader = (function () {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
+        console.log(this._listener);
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
         this._fileInputId = this.FILE_INPUT_EL_ID + "_" + new Date().getTime();
@@ -1391,6 +1460,8 @@ var Uploader = (function () {
                         }
                         //这里的长宽是绘制到画布上的图片的长宽
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        console.log(canvas);
+                        console.log(canvas.toBlob);
                         //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
                         canvas.toBlob(function (blob) {
                             resolve(blob);

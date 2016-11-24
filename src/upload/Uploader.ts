@@ -9,6 +9,7 @@ import SimpleUploadListener from "./hook/SimpleUploadListener";
 import DirectUploadPattern from "./pattren/DirectUploadPattern";
 import ChunkUploadPattern from "./pattren/ChunkUploadPattern";
 import '../util/Polyfill';
+import isWechat from "../util/isWechat";
 
 class Uploader {
     private FILE_INPUT_EL_ID: string = 'qiniu4js-input';
@@ -46,6 +47,7 @@ class Uploader {
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
+        console.log(this._listener);
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;
@@ -98,7 +100,6 @@ class Uploader {
         //文件类型
         if (this.accept && this.accept.length != 0) {
             let acceptValue: string = '';
-
             for (let value: string of this.accept) {
                 acceptValue += value;
                 acceptValue += ',';
@@ -275,10 +276,12 @@ class Uploader {
                         //这里的长宽是绘制到画布上的图片的长宽
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
+                        console.log(canvas);
+                        console.log(canvas.toBlob);
                         //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
                         canvas.toBlob((blob: Blob) => {
                             resolve(blob);
-                            debug.d(`${task.file.name} 处理后的图片大小:${blob.size / 1024}kb`)
+                            debug.d(`${task.file.name} 处理后的图片大小:${blob.size / 1024}kb`);
                         }, "image/jpeg", _this.compress * 0.95);
                     }
                 ).then((blob: any) => {
