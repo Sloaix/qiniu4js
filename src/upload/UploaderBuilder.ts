@@ -1,6 +1,7 @@
 import Uploader from "./Uploader";
 import Interceptor from "./interceptor/UploadInterceptor";
 import UploadListener from "./hook/UploadListener";
+import { Scheme, Domain } from "./url/Domain";
 
 /**
  * UploaderBuilder
@@ -10,9 +11,11 @@ class UploaderBuilder {
     public static MAX_CHUNK_SIZE = 4 * 1024 * 1024;//分片最大值
     public static BLOCK_SIZE = UploaderBuilder.MAX_CHUNK_SIZE;//分块大小，只有大于这个数才需要分块
     public static UPLOAD_URL = 'http://upload.qiniu.com';
+    public static UPLOAD_DOMAIN = {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'};
 
     private _retry: number = 0;//最大重试次数
-    private _domain: string = UploaderBuilder.UPLOAD_URL;//上传域名
+    private _domain: Domain = UploaderBuilder.UPLOAD_DOMAIN;//上传域名
+    private _scheme: Scheme = null;//上传域名的 scheme
     private _size: number = 1024 * 1024;//分片大小,单位字节,上限4m,不能为0
     private _chunk: boolean = true;//分块上传
     private _auto: boolean = true;//自动上传,每次选择文件后
@@ -28,12 +31,22 @@ class UploaderBuilder {
 
 
     /**
-     * 设置上传的域名,默认是http://upload.qiniu.com/
+     * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
      * @param domain
      * @returns {UploaderBuilder}
      */
-    public domain(domain: string): UploaderBuilder {
-        this._domain = domain.endsWith('/') ? domain.substring(0, domain.length - 1) : domain;
+    public domain(domain: Domain): UploaderBuilder {
+        this._domain = domain;
+        return this;
+    }
+
+    /**
+     * 设置上传域名的协议类型，默认从 window.location.protocol 读取
+     * @param scheme
+     * @returns {UploaderBuilder}
+     */
+    public scheme(scheme: Scheme): UploaderBuilder {
+        this._scheme = scheme;
         return this;
     }
 
@@ -223,7 +236,19 @@ class UploaderBuilder {
     }
 
     get getDomain(): string {
-        return this._domain;
+        let domain = this._domain;
+        if (domain == null) {
+            domain = UploaderBuilder.UPLOAD_DOMAIN;
+        }
+        if (typeof domain != "string") {
+            let scheme = this._scheme;
+            if (typeof scheme != "string") {
+                let protocol = window.location.protocol;
+                scheme = protocol.substring(0, protocol.length - 1) as Scheme
+            }
+            domain = domain[scheme];
+        }
+        return domain.endsWith('/') ? domain.substring(0, domain.length - 1) : domain;
     }
 
     public build(): Uploader {

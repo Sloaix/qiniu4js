@@ -58,7 +58,8 @@ sudo npm install qiniu4js --save
 //构建uploader实例
 let uploader = new UploaderBuilder()
 	.debug(false)//开启debug，默认false
-	.domain("http://img.yourdomain.com")//默认为http://upload.qiniu.com
+	.domain({http: "http://img.yourdomain.com", https: "https://img.yourdomain.com"})//默认为{http: "http://upload.qiniu.com", https: "https://up.qbox.me"}
+	.scheme("https")//默认从 window.location.protocol 获取，可以通过指定域名为 "http://img.yourdomain.com" 来忽略域名选择。
 	.retry(0)//设置重传次数，默认0，不重传
 	.compress(0.5)//默认为1,范围0-1
 	.scale([200,0])第一个参数是宽度，第二个是高度,[200,0],限定高度，宽度等比缩放.[0,100]限定宽度,高度等比缩放.[200,100]固定长宽
