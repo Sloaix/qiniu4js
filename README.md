@@ -143,6 +143,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 1.0.7 (2016-11-28)
+    - scheme方法,可选上传协议。
+    
 - 1.0.6 (2016-11-25)
     - 修复微信x5内核不支持Object.assign的问题，添加Object.assign polyfill.
     - 微信x5 对input.accept属性做了限制，如果要上传图片请使用accept(['image/*'])
