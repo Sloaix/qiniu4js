@@ -527,7 +527,8 @@ var Chunk = (function () {
 var UploaderBuilder = (function () {
     function UploaderBuilder() {
         this._retry = 0; //最大重试次数
-        this._domain = UploaderBuilder.UPLOAD_URL; //上传域名
+        this._domain = UploaderBuilder.UPLOAD_DOMAIN; //上传域名
+        this._scheme = null; //上传域名的 scheme
         this._size = 1024 * 1024; //分片大小,单位字节,上限4m,不能为0
         this._chunk = true; //分块上传
         this._auto = true; //自动上传,每次选择文件后
@@ -540,12 +541,21 @@ var UploaderBuilder = (function () {
         this._isDebug = false; //
     }
     /**
-     * 设置上传的域名,默认是http://upload.qiniu.com/
+     * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
      * @param domain
      * @returns {UploaderBuilder}
      */
     UploaderBuilder.prototype.domain = function (domain) {
-        this._domain = domain.endsWith('/') ? domain.substring(0, domain.length - 1) : domain;
+        this._domain = domain;
+        return this;
+    };
+    /**
+     * 设置上传域名的协议类型，默认从 window.location.protocol 读取
+     * @param scheme
+     * @returns {UploaderBuilder}
+     */
+    UploaderBuilder.prototype.scheme = function (scheme) {
+        this._scheme = scheme;
         return this;
     };
     /**
@@ -761,7 +771,19 @@ var UploaderBuilder = (function () {
     });
     Object.defineProperty(UploaderBuilder.prototype, "getDomain", {
         get: function () {
-            return this._domain;
+            var domain = this._domain;
+            if (domain == null) {
+                domain = UploaderBuilder.UPLOAD_DOMAIN;
+            }
+            if (typeof domain != "string") {
+                var scheme = this._scheme;
+                if (typeof scheme != "string") {
+                    var protocol = window.location.protocol;
+                    scheme = protocol.substring(0, protocol.length - 1);
+                }
+                domain = domain[scheme];
+            }
+            return domain.endsWith('/') ? domain.substring(0, domain.length - 1) : domain;
         },
         enumerable: true,
         configurable: true
@@ -774,6 +796,7 @@ var UploaderBuilder = (function () {
 UploaderBuilder.MAX_CHUNK_SIZE = 4 * 1024 * 1024; //分片最大值
 UploaderBuilder.BLOCK_SIZE = UploaderBuilder.MAX_CHUNK_SIZE; //分块大小，只有大于这个数才需要分块
 UploaderBuilder.UPLOAD_URL = 'http://upload.qiniu.com';
+UploaderBuilder.UPLOAD_DOMAIN = { http: 'http://upload.qiniu.com', https: 'https://up.qbox.me' };
 
 var Debug = (function () {
     function Debug() {

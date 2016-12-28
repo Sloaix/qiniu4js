@@ -1,7 +1,7 @@
 import Uploader from "./Uploader";
 import Interceptor from "./interceptor/UploadInterceptor";
 import UploadListener from "./hook/UploadListener";
-import { Scheme, Domain } from "./url/Domain";
+import {Scheme, Domain} from "./url/Domain";
 
 /**
  * UploaderBuilder
@@ -236,7 +236,7 @@ class UploaderBuilder {
     }
 
     get getDomain(): string {
-        let domain = this._domain;
+        let domain: any = this._domain;
         if (domain == null) {
             domain = UploaderBuilder.UPLOAD_DOMAIN;
         }

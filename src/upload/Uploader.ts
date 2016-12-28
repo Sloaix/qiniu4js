@@ -8,8 +8,7 @@ import UploadListener from "./hook/UploadListener";
 import SimpleUploadListener from "./hook/SimpleUploadListener";
 import DirectUploadPattern from "./pattren/DirectUploadPattern";
 import ChunkUploadPattern from "./pattren/ChunkUploadPattern";
-import '../util/Polyfill';
-import isWechat from "../util/isWechat";
+import "../util/Polyfill";
 
 class Uploader {
     private FILE_INPUT_EL_ID: string = 'qiniu4js-input';
@@ -244,6 +243,7 @@ class Uploader {
                 let img: HTMLImageElement = new Image();
                 let ctx: CanvasRenderingContext2D = <CanvasRenderingContext2D>canvas.getContext('2d');
                 img.src = URL.createObjectURL(task.file);
+
 
                 let _this = this;
 
