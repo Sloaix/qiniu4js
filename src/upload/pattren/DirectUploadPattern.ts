@@ -7,6 +7,7 @@ import debug from "../../util/Debug";
  */
 class DirectUploadPattern implements IUploadPattern {
     private uploader: Uploader;
+    private task: DirectTask;
 
     init(uploader: Uploader): void {
         this.uploader = uploader;
@@ -17,6 +18,55 @@ class DirectUploadPattern implements IUploadPattern {
      * @param task
      */
     upload(task: DirectTask): void {
+        this.task = task;
+
+        if (this.uploader.tokenShare && this.uploader.token) {
+            debug.d(`使用上次token进行上传`);
+            task.startDate = new Date();
+            this.uploadFile(this.uploader.token);
+        }
+        else {
+            debug.d(`开始获取上传token`);
+            this.uploader.tokenFunc((token: string) => {
+                debug.d(`上传token获取成功 ${token}`);
+                this.uploader.token = token;
+                task.startDate = new Date();
+                this.uploadFile(this.uploader.token);
+            }, task);
+        }
+    }
+
+
+    /**
+     * 创建表单
+     * @param token
+     * @returns {FormData}
+     */
+    private createFormData(token: String): FormData {
+        let task: DirectTask = this.task;
+        let formData: FormData = new FormData();
+
+        //key存在，添加到formData中，若不设置，七牛服务器会自动生成hash key
+        if (task.key !== null && task.key !== undefined) {
+            formData.append('key', task.key);
+        }
+
+        formData.append('token', token);
+        formData.append('file', task.file);
+
+        debug.d(`创建formData对象`);
+
+        return formData;
+    }
+
+
+    /**
+     * 上传文件
+     * @param token
+     */
+    private uploadFile(token: string) {
+        let task: DirectTask = this.task;
+
         let xhr: XMLHttpRequest = new XMLHttpRequest();
 
         //上传中
@@ -77,46 +127,8 @@ class DirectUploadPattern implements IUploadPattern {
             }
         };
 
-        if (this.uploader.tokenShare && this.uploader.token) {
-            debug.d(`使用上次token进行上传`);
-            task.startDate = new Date();
-            let formData: FormData = DirectUploadPattern.createFormData(task, this.uploader.token);
-            xhr.send(formData);
-        }
-        else {
-            debug.d(`开始获取上传token`);
-            this.uploader.tokenFunc((token: string) => {
-                debug.d(`上传token获取成功 ${token}`);
-                this.uploader.token = token;
-                task.startDate = new Date();
-                let formData: FormData = DirectUploadPattern.createFormData(task, this.uploader.token);
-                xhr.send(formData);
-            }, task);
-        }
-    }
-
-
-    /**
-     * 创建表单
-     * @param task
-     * @param token
-     * @returns {FormData}
-     */
-    private static createFormData(task: DirectTask, token: String): FormData {
-
-        let formData: FormData = new FormData();
-
-        //key存在，添加到formData中，若不设置，七牛服务器会自动生成hash key
-        if (task.key !== null && task.key !== undefined) {
-            formData.append('key', task.key);
-        }
-
-        formData.append('token', token);
-        formData.append('file', task.file);
-
-        debug.d(`创建formData对象`);
-
-        return formData;
+        let formData: FormData = this.createFormData(token);
+        xhr.send(formData);
     }
 
 
