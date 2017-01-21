@@ -142,14 +142,14 @@ class Uploader {
 
         //是否中断任务
         let isInterrupt: Boolean = false;
+        let interceptedTasks: BaseTask[] = [];
 
         //任务拦截器过滤
         for (let task: BaseTask of this.taskQueue) {
             for (let interceptor: Interceptor of this.interceptors) {
                 //拦截生效
                 if (interceptor.onIntercept(task)) {
-                    //从任务队列中去除任务
-                    this.taskQueue.splice(this.taskQueue.indexOf(task), 1);
+                    interceptedTasks.push(task);
                     debug.d("任务拦截器拦截了任务:");
                     debug.d(task);
                 }
@@ -165,6 +165,14 @@ class Uploader {
         if (isInterrupt) {
             debug.w("任务拦截器中断了任务队列");
             return;
+        }
+
+        //从任务队列中去除任务
+        for (let task of interceptedTasks) {
+            let index = this.taskQueue.indexOf(task);
+            if (index != -1) {
+                this.taskQueue.splice(index, 1);
+            }
         }
 
         //回调函数函数
