@@ -20,20 +20,10 @@ class DirectUploadPattern implements IUploadPattern {
     upload(task: DirectTask): void {
         this.task = task;
 
-        if (this.uploader.tokenShare && this.uploader.token) {
-            debug.d(`使用上次token进行上传`);
+        this.uploader.getToken(task).then((token: string) => {
             task.startDate = new Date();
-            this.uploadFile(this.uploader.token);
-        }
-        else {
-            debug.d(`开始获取上传token`);
-            this.uploader.tokenFunc((token: string) => {
-                debug.d(`上传token获取成功 ${token}`);
-                this.uploader.token = token;
-                task.startDate = new Date();
-                this.uploadFile(this.uploader.token);
-            }, task);
-        }
+            this.uploadFile(token);
+        });
     }
 
 

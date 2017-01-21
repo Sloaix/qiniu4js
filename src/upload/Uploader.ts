@@ -300,7 +300,7 @@ class Uploader {
      * 检验选项合法性
      */
     private  validateOptions(): void {
-        if (!this.tokenFunc) {
+        if (!this._tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
         if (!this.scale || !this.scale instanceof Array || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
@@ -360,6 +360,20 @@ class Uploader {
         this.fileInput.click();
     }
 
+    public getToken(task: BaseTask): Promise<string> {
+        if (this._tokenShare && this._token != undefined) {
+            return Promise.resolve(this._token);
+        }
+        debug.d(`开始获取上传token`);
+        return new Promise((resolve) => {
+            this._tokenFunc(resolve, task);
+        }).then((token: string): string => {
+            debug.d(`上传token获取成功 ${token}`);
+            this._token = token;
+            return token;
+        });
+    }
+
     get retry(): number {
         return this._retry;
     }
@@ -396,24 +410,8 @@ class Uploader {
         return this._fileInput;
     }
 
-    get tokenShare(): boolean {
-        return this._tokenShare;
-    }
-
     get chunk(): boolean {
         return this._chunk;
-    }
-
-    get tokenFunc(): Function {
-        return this._tokenFunc;
-    }
-
-    get token(): string {
-        return this._token;
-    }
-
-    set token(value: string) {
-        this._token = value;
     }
 
     get taskQueue(): BaseTask[] {
