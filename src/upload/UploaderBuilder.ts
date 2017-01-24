@@ -136,6 +136,18 @@ class UploaderBuilder {
     }
 
     /**
+     * 获取Token的地址
+     * @param tokenUrl
+     * @returns {UploaderBuilder}
+     */
+    public tokenUrl(tokenUrl): UploaderBuilder {
+        this._tokenFunc = (uploader: Uploader, task: BaseTask) => {
+            return uploader.requestTaskToken(task, tokenUrl);
+        }
+        return this;
+    }
+
+    /**
      * 获取Token的函数
      * @param tokenFunc
      * @returns {UploaderBuilder}
