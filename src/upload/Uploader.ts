@@ -373,6 +373,32 @@ class Uploader {
         });
     }
 
+    public requestTaskToken(task: BaseTask, url: string): Promise<string> {
+        return this.requestToken(url);
+    }
+
+    private requestToken(url: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime();
+
+            let xhr: XMLHttpRequest = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState != XMLHttpRequest.DONE) {
+                    return;
+                }
+                if (xhr.status == 200) {
+                    resolve(xhr.response.uptoken);
+                    return;
+                }
+                reject(xhr.response);
+            };
+            xhr.onabort = () => { reject('aborted'); };
+            xhr.responseType = 'json';
+            xhr.send();
+        });
+    }
+
     get retry(): number {
         return this._retry;
     }
