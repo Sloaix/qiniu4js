@@ -1,6 +1,7 @@
 import BaseTask from "./task/BaseTask";
 import DirectTask from "./task/DirectTask";
 import {ChunkTask} from "./task/ChunkTask";
+import TokenFunc from "./TokenFunc";
 import UploaderBuilder from "./UploaderBuilder";
 import debug from "../util/Debug";
 import Interceptor from "./interceptor/UploadInterceptor";
@@ -29,7 +30,7 @@ class Uploader {
     private _compress: number;//图片压缩质量
     private _scale: number[] = [];//缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
-    private _tokenFunc: Function;//token获取函数
+    private _tokenFunc: TokenFunc;//token获取函数
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[];//任务拦截器
     private _domain: string;//上传域名
@@ -365,9 +366,7 @@ class Uploader {
             return Promise.resolve(this._token);
         }
         debug.d(`开始获取上传token`);
-        return new Promise((resolve) => {
-            this._tokenFunc(resolve, task);
-        }).then((token: string): string => {
+        return Promise.resolve(this._tokenFunc(this, task)).then((token: string): string => {
             debug.d(`上传token获取成功 ${token}`);
             this._token = token;
             return token;
