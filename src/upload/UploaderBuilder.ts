@@ -26,6 +26,7 @@ class UploaderBuilder {
     private _compress: number = 1;//图片压缩质量
     private _scale: number[] = [0, 0];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
+    private _saveKey: boolean | string = false;
     private _tokenFunc: TokenFunc;//token获取函数
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[] = [];//任务拦截器
@@ -136,6 +137,16 @@ class UploaderBuilder {
     }
 
     /**
+     * 设置 saveKey
+     * @param saveKey
+     * @returns {UploaderBuilder}
+     */
+    public saveKey(saveKey: boolean | string): UploaderBuilder {
+        this._saveKey = saveKey;
+        return this;
+    }
+
+    /**
      * 获取Token的地址
      * @param tokenUrl
      * @returns {UploaderBuilder}
@@ -231,6 +242,10 @@ class UploaderBuilder {
 
     get getListener(): UploadListener {
         return this._listener;
+    }
+
+    get getSaveKey(): boolean | string {
+        return this._saveKey;
     }
 
     get getTokenFunc(): TokenFunc {
