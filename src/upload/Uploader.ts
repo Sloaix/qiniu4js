@@ -2,6 +2,7 @@ import BaseTask from "./task/BaseTask";
 import DirectTask from "./task/DirectTask";
 import {ChunkTask} from "./task/ChunkTask";
 import TokenFunc from "./TokenFunc";
+import UUID from "./uuid/UUID";
 import UploaderBuilder from "./UploaderBuilder";
 import debug from "../util/Debug";
 import Interceptor from "./interceptor/UploadInterceptor";
@@ -414,7 +415,16 @@ class Uploader {
             return Promise.resolve(undefined);
         }
         return Promise.resolve(saveKey)
+            .then(this.resolveUUID)
             .then(this.onSaveKeyResolved);
+    }
+
+    private resolveUUID = (s: string): string => {
+        let re = /\$\(uuid\)/;
+        if (re.test(s)) {
+            return s.replace(re, UUID.uuid());
+        }
+        return s;
     }
 
     private onSaveKeyResolved = (saveKey: string): string => {
