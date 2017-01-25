@@ -30,6 +30,7 @@ class Uploader {
     private _compress: number;//图片压缩质量
     private _scale: number[] = [];//缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
+    private _saveKey: boolean | string = false;
     private _tokenFunc: TokenFunc;//token获取函数
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[];//任务拦截器
@@ -44,6 +45,7 @@ class Uploader {
         this._accept = builder.getAccept;
         this._compress = builder.getCompress;
         this._scale = builder.getScale;
+        this._saveKey = builder.getSaveKey;
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
@@ -221,7 +223,9 @@ class Uploader {
             else {
                 task = new DirectTask(file);
             }
-            task.key = this.listener.onTaskGetKey(task);
+            if (this._saveKey == false) {
+                task.key = this.listener.onTaskGetKey(task);
+            }
             this.taskQueue.push(task);
         }
     }
@@ -374,11 +378,16 @@ class Uploader {
     }
 
     public requestTaskToken(task: BaseTask, url: string): Promise<string> {
-        return this.requestToken(url);
+        return this.resolveSaveKey(task).then((saveKey: string) => {
+            return this.requestToken(url, saveKey);
+        });
     }
 
-    private requestToken(url: string): Promise<string> {
+    private requestToken(url: string, saveKey: string): Promise<string> {
         return new Promise((resolve, reject) => {
+            if (typeof saveKey == "string") {
+                url += ((/\?/).test(url) ? "&" : "?") + "saveKey=" + encodeURIComponent(saveKey);
+            }
             url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime();
 
             let xhr: XMLHttpRequest = new XMLHttpRequest();
@@ -397,6 +406,20 @@ class Uploader {
             xhr.responseType = 'json';
             xhr.send();
         });
+    }
+
+    private resolveSaveKey(task: BaseTask): Promise<string> {
+        let saveKey = this._saveKey;
+        if (typeof saveKey != "string") {
+            return Promise.resolve(undefined);
+        }
+        return Promise.resolve(saveKey)
+            .then(this.onSaveKeyResolved);
+    }
+
+    private onSaveKeyResolved = (saveKey: string): string => {
+        this._tokenShare = this._tokenShare && this._saveKey == saveKey;
+        return saveKey;
     }
 
     get retry(): number {
