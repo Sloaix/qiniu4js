@@ -416,6 +416,7 @@ class Uploader {
         }
         return Promise.resolve(saveKey)
             .then(this.resolveUUID)
+            .then(saveKey => this.resolveImageInfo(task.file, saveKey))
             .then(this.onSaveKeyResolved);
     }
 
@@ -425,6 +426,23 @@ class Uploader {
             return s.replace(re, UUID.uuid());
         }
         return s;
+    }
+
+    private resolveImageInfo = (blob: Blob, s: string): Promise<string> => {
+        let widthRe = /\$\(imageInfo\.width\)/;
+        let heightRe = /\$\(imageInfo\.height\)/;
+        if (!widthRe.test(s) && !heightRe.test(s)) {
+            return Promise.resolve(s);
+        }
+        return new Promise<string>((resolve) => {
+            let img = new Image();
+            img.src = URL.createObjectURL(blob);
+            img.onload = () => {
+                s = s.replace(widthRe, img.width.toString());
+                s = s.replace(heightRe, img.height.toString());
+                resolve(s);
+            };
+        });
     }
 
     private onSaveKeyResolved = (saveKey: string): string => {
