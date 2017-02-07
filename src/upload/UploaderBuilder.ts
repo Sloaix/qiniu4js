@@ -24,6 +24,8 @@ class UploaderBuilder {
     private _auto: boolean = true;//自动上传,每次选择文件后
     private _multiple: boolean = true;//是否支持多文件
     private _accept: string[] = [];//接受的文件类型
+    private _button: string;//上传按钮
+    private _buttonEventName: string;//上传按钮的监听事件名称
     private _compress: number = 1;//图片压缩质量
     private _scale: number[] = [0, 0];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
@@ -114,6 +116,18 @@ class UploaderBuilder {
      */
     public accept(accept: string[]): UploaderBuilder {
         this._accept = accept;
+        return this;
+    }
+
+    /**
+     * 设置上传按钮
+     * @param button 上传按钮ID
+     * @param eventName 上传按钮的监听事件名称，默认为 "click" 。
+     * @returns {UploaderBuilder}
+     */
+    public button(button: string, eventName = "click"): UploaderBuilder {
+        this._button = button;
+        this._buttonEventName = eventName;
         return this;
     }
 
@@ -231,6 +245,14 @@ class UploaderBuilder {
 
     get getAccept(): string[] {
         return this._accept;
+    }
+
+    get getButton(): string {
+        return this._button;
+    }
+
+    get getButtonEventName(): string {
+        return this._buttonEventName;
     }
 
     get getCompress(): number {

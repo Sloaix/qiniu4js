@@ -28,6 +28,8 @@ class Uploader {
     private _auto: boolean;//自动上传,每次选择文件后
     private _multiple: boolean;//是否支持多文件
     private _accept: string[];//接受的文件类型
+    private _button: string;//上传按钮
+    private _buttonEventName: string;//上传按钮的监听事件名称
     private _compress: number;//图片压缩质量
     private _scale: number[] = [];//缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
@@ -44,6 +46,8 @@ class Uploader {
         this._auto = builder.getAuto;
         this._multiple = builder.getMultiple;
         this._accept = builder.getAccept;
+        this._button = builder.getButton;
+        this._buttonEventName = builder.getButtonEventName;
         this._compress = builder.getCompress;
         this._scale = builder.getScale;
         this._saveKey = builder.getSaveKey;
@@ -120,6 +124,11 @@ class Uploader {
 
         //选择文件监听器
         this.fileInput.addEventListener('change', this.handleFiles, false);
+
+        if (this._button != undefined) {
+            let button = document.getElementById(this._button);
+            button.addEventListener(this._buttonEventName, this.chooseFile.bind(this));
+        }
     }
 
 
