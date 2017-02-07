@@ -1,5 +1,6 @@
 import Uploader from "./Uploader";
 import Interceptor from "./interceptor/UploadInterceptor";
+import SimpleUploadInterceptor from "./interceptor/SimpleUploadInterceptor";
 import UploadListener from "./hook/UploadListener";
 import {Scheme, Domain} from "./url/Domain";
 
@@ -56,7 +57,7 @@ class UploaderBuilder {
      * @returns {UploaderBuilder}
      */
     public interceptor(interceptor: Interceptor): UploaderBuilder {
-        this._interceptors.push(interceptor);
+        this._interceptors.push(Object.assign(new SimpleUploadInterceptor(), interceptor));
         return this;
     }
 
