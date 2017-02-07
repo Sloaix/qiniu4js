@@ -1,11 +1,11 @@
-# 点击前往:[gitter在线交流](https://gitter.im/qiniu4js/Lobby)
-
-# qiniu4js
+# qiniu4js 
 qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
 使用TypeScript编写，不依赖任何三方库，纯代码不包含任何界面元素，使用HTML5 文件API上传(目前和未来不会支持HTML4以及FLASH)。
 
 支持UMD模块导入。
+
+#### [gitter在线交流](https://gitter.im/qiniu4js/Lobby)
 
 ## 已完成
 
@@ -60,6 +60,7 @@ sudo npm install qiniu4js --save
 //构建uploader实例
 let uploader = new UploaderBuilder()
 	.debug(false)//开启debug，默认false
+	.button('uploadButton')//指定上传按钮
 	.domain({http: "http://img.yourdomain.com", https: "https://img.yourdomain.com"})//默认为{http: "http://upload.qiniu.com", https: "https://up.qbox.me"}
 	.scheme("https")//默认从 window.location.protocol 获取，可以通过指定域名为 "http://img.yourdomain.com" 来忽略域名选择。
 	.retry(0)//设置重传次数，默认0，不重传
@@ -92,7 +93,7 @@ let uploader = new UploaderBuilder()
     		else {
     			return false;
     		}
-    	},
+    	}
     }   
     //你可以添加多个任务拦截器
     .interceptor({...})
@@ -145,6 +146,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 1.0.8 (2017-2-7)
+    - button方法，可以指定上传按钮
+    
 - 1.0.7 (2016-11-28)
     - scheme方法,可选上传协议。
     

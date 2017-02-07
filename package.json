@@ -1,6 +1,6 @@
 {
   "name": "qiniu4js",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Maybe is the best js sdk for qiniu",
   "homepage": "https://www.gihub.com/lsxiao/qiniu4js",
   "repository": "lsxiao/qiniu4js",
@@ -19,12 +19,14 @@
   "devDependencies": {
     "del": "^2.2.2",
     "rollup": "^0.36.3",
+    "rollup-plugin-babel": "^2.7.1",
     "rollup-plugin-typescript": "^0.8.1",
     "typescript": "^2.0.3"
   },
   "scripts": {
     "build": "node tools/build"
   },
-  "dependencies": {}
+  "dependencies": {
+    "npmlog": "^4.0.2"
+  }
 }
-

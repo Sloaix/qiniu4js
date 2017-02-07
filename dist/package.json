@@ -1,6 +1,6 @@
 {
   "name": "qiniu4js",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Maybe is the best js sdk for qiniu",
   "homepage": "https://www.gihub.com/lsxiao/qiniu4js",
   "repository": "lsxiao/qiniu4js",
@@ -16,5 +16,7 @@
   "bugs": {
     "url": "https://github.com/lsxiao/qiniu4js/issues"
   },
-  "dependencies": {}
+  "dependencies": {
+    "npmlog": "^4.0.2"
+  }
 }

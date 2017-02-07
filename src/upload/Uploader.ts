@@ -443,7 +443,7 @@ class Uploader {
             return s.replace(re, UUID.uuid());
         }
         return s;
-    }
+    };
 
     private resolveImageInfo = (blob: Blob, s: string): Promise<string> => {
         let widthRe = /\$\(imageInfo\.width\)/;
@@ -460,12 +460,12 @@ class Uploader {
                 resolve(s);
             };
         });
-    }
+    };
 
     private onSaveKeyResolved = (saveKey: string): string => {
         this._tokenShare = this._tokenShare && this._saveKey == saveKey;
         return saveKey;
-    }
+    };
 
     get retry(): number {
         return this._retry;
