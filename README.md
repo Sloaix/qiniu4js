@@ -1,4 +1,4 @@
-# qiniu4js 
+# qiniu4js  [![npm version](https://badge.fury.io/js/qiniu4js.svg)](https://badge.fury.io/js/qiniu4js)
 qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
 使用TypeScript编写，不依赖任何三方库，纯代码不包含任何界面元素，使用HTML5 文件API上传(目前和未来不会支持HTML4以及FLASH)。
@@ -147,7 +147,7 @@ button.addEventListener("click", function () {
 
 ## 版本说明
 - 1.0.8 (2017-2-7)
-    - button方法，可以指定上传按钮
+    - button方法，可以指定上传按钮，传入id
     
 - 1.0.7 (2016-11-28)
     - scheme方法,可选上传协议。
