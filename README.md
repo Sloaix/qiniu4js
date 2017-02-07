@@ -1,3 +1,5 @@
+# 点击前往:[gitter在线交流](https://gitter.im/qiniu4js/Lobby)
+
 # qiniu4js
 qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
