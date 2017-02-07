@@ -135,7 +135,7 @@ var BaseTask = (function () {
 var DirectTask = (function (_super) {
     __extends(DirectTask, _super);
     function DirectTask() {
-        return _super.apply(this, arguments) || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     return DirectTask;
 }(BaseTask));
@@ -514,6 +514,33 @@ var Chunk = (function () {
     return Chunk;
 }());
 
+var UUID = (function () {
+    function UUID() {
+    }
+    UUID.uuid = function () {
+        var d = new Date().getTime();
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        return uuid;
+    };
+    return UUID;
+}());
+
+var SimpleUploadInterceptor = (function () {
+    function SimpleUploadInterceptor() {
+    }
+    SimpleUploadInterceptor.prototype.onIntercept = function (task) {
+        return false;
+    };
+    SimpleUploadInterceptor.prototype.onInterrupt = function (task) {
+        return false;
+    };
+    return SimpleUploadInterceptor;
+}());
+
 /**
  * UploaderBuilder
  *
@@ -530,6 +557,7 @@ var UploaderBuilder = (function () {
         this._accept = []; //接受的文件类型
         this._compress = 1; //图片压缩质量
         this._scale = [0, 0]; //缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
+        this._saveKey = false;
         this._tokenShare = true; //分享token,如果为false,每一次HTTP请求都需要新获取Token
         this._interceptors = []; //任务拦截器
         this._isDebug = false; //
@@ -558,7 +586,7 @@ var UploaderBuilder = (function () {
      * @returns {UploaderBuilder}
      */
     UploaderBuilder.prototype.interceptor = function (interceptor) {
-        this._interceptors.push(interceptor);
+        this._interceptors.push(Object.assign(new SimpleUploadInterceptor(), interceptor));
         return this;
     };
     /**
@@ -610,6 +638,18 @@ var UploaderBuilder = (function () {
         return this;
     };
     /**
+     * 设置上传按钮
+     * @param button 上传按钮ID
+     * @param eventName 上传按钮的监听事件名称，默认为 "click" 。
+     * @returns {UploaderBuilder}
+     */
+    UploaderBuilder.prototype.button = function (button, eventName) {
+        if (eventName === void 0) { eventName = "click"; }
+        this._button = button;
+        this._buttonEventName = eventName;
+        return this;
+    };
+    /**
      * 图片质量压缩,只在上传的文件是图片的时候有效
      * @param compress 0-1,默认1,不压缩
      * @returns {UploaderBuilder}
@@ -628,12 +668,36 @@ var UploaderBuilder = (function () {
         return this;
     };
     /**
+     * 设置 saveKey
+     * @param saveKey
+     * @returns {UploaderBuilder}
+     */
+    UploaderBuilder.prototype.saveKey = function (saveKey) {
+        this._saveKey = saveKey;
+        return this;
+    };
+    /**
+     * 获取Token的地址
+     * @param tokenUrl
+     * @returns {UploaderBuilder}
+     */
+    UploaderBuilder.prototype.tokenUrl = function (tokenUrl) {
+        this._tokenFunc = function (uploader, task) {
+            return uploader.requestTaskToken(task, tokenUrl);
+        };
+        return this;
+    };
+    /**
      * 获取Token的函数
      * @param tokenFunc
      * @returns {UploaderBuilder}
      */
     UploaderBuilder.prototype.tokenFunc = function (tokenFunc) {
-        this._tokenFunc = tokenFunc;
+        this._tokenFunc = function (uploader, task) {
+            return new Promise(function (resolve) {
+                tokenFunc(resolve, task);
+            });
+        };
         return this;
     };
     /**
@@ -707,6 +771,20 @@ var UploaderBuilder = (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(UploaderBuilder.prototype, "getButton", {
+        get: function () {
+            return this._button;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UploaderBuilder.prototype, "getButtonEventName", {
+        get: function () {
+            return this._buttonEventName;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(UploaderBuilder.prototype, "getCompress", {
         get: function () {
             return this._compress;
@@ -724,6 +802,13 @@ var UploaderBuilder = (function () {
     Object.defineProperty(UploaderBuilder.prototype, "getListener", {
         get: function () {
             return this._listener;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UploaderBuilder.prototype, "getSaveKey", {
+        get: function () {
+            return this._saveKey;
         },
         enumerable: true,
         configurable: true
@@ -878,6 +963,36 @@ var DirectUploadPattern = (function () {
      */
     DirectUploadPattern.prototype.upload = function (task) {
         var _this = this;
+        this.task = task;
+        this.uploader.getToken(task).then(function (token) {
+            task.startDate = new Date();
+            _this.uploadFile(token);
+        });
+    };
+    /**
+     * 创建表单
+     * @param token
+     * @returns {FormData}
+     */
+    DirectUploadPattern.prototype.createFormData = function (token) {
+        var task = this.task;
+        var formData = new FormData();
+        //key存在，添加到formData中，若不设置，七牛服务器会自动生成hash key
+        if (task.key !== null && task.key !== undefined) {
+            formData.append('key', task.key);
+        }
+        formData.append('token', token);
+        formData.append('file', task.file);
+        Debug.d("\u521B\u5EFAformData\u5BF9\u8C61");
+        return formData;
+    };
+    /**
+     * 上传文件
+     * @param token
+     */
+    DirectUploadPattern.prototype.uploadFile = function (token) {
+        var _this = this;
+        var task = this.task;
         var xhr = new XMLHttpRequest();
         //上传中
         xhr.upload.onprogress = function (e) {
@@ -930,39 +1045,8 @@ var DirectUploadPattern = (function () {
                 }
             }
         };
-        if (this.uploader.tokenShare && this.uploader.token) {
-            Debug.d("\u4F7F\u7528\u4E0A\u6B21token\u8FDB\u884C\u4E0A\u4F20");
-            task.startDate = new Date();
-            var formData = DirectUploadPattern.createFormData(task, this.uploader.token);
-            xhr.send(formData);
-        }
-        else {
-            Debug.d("\u5F00\u59CB\u83B7\u53D6\u4E0A\u4F20token");
-            this.uploader.tokenFunc(function (token) {
-                Debug.d("\u4E0A\u4F20token\u83B7\u53D6\u6210\u529F " + token);
-                _this.uploader.token = token;
-                task.startDate = new Date();
-                var formData = DirectUploadPattern.createFormData(task, _this.uploader.token);
-                xhr.send(formData);
-            }, task);
-        }
-    };
-    /**
-     * 创建表单
-     * @param task
-     * @param token
-     * @returns {FormData}
-     */
-    DirectUploadPattern.createFormData = function (task, token) {
-        var formData = new FormData();
-        //key存在，添加到formData中，若不设置，七牛服务器会自动生成hash key
-        if (task.key !== null && task.key !== undefined) {
-            formData.append('key', task.key);
-        }
-        formData.append('token', token);
-        formData.append('file', task.file);
-        Debug.d("\u521B\u5EFAformData\u5BF9\u8C61");
-        return formData;
+        var formData = this.createFormData(token);
+        xhr.send(formData);
     };
     /**
      * 重传
@@ -995,19 +1079,10 @@ var ChunkUploadPattern = (function () {
     ChunkUploadPattern.prototype.upload = function (task) {
         var _this = this;
         this.task = task;
-        if (this.uploader.tokenShare && this.uploader.token) {
+        this.uploader.getToken(task).then(function (token) {
             task.startDate = new Date();
-            this.uploadBlock(this.uploader.token);
-        }
-        else {
-            Debug.d("\u5F00\u59CB\u83B7\u53D6token");
-            this.uploader.tokenFunc(function (token) {
-                Debug.d("token\u83B7\u53D6\u6210\u529F " + token);
-                _this.uploader.token = token;
-                task.startDate = new Date();
-                _this.uploadBlock(token);
-            }, task);
-        }
+            _this.uploadBlock(token);
+        });
     };
     ChunkUploadPattern.prototype.uploadBlock = function (token) {
         var _this = this;
@@ -1281,6 +1356,7 @@ var Uploader = (function () {
         this._taskQueue = []; //任务队列
         this._tasking = false; //任务执行中
         this._scale = []; //缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
+        this._saveKey = false;
         /**
          * 处理文件
          */
@@ -1293,6 +1369,7 @@ var Uploader = (function () {
             _this.generateTask();
             //是否中断任务
             var isInterrupt = false;
+            var interceptedTasks = [];
             //任务拦截器过滤
             for (var _i = 0, _a = _this.taskQueue; _i < _a.length; _i++) {
                 var task = _a[_i];
@@ -1300,8 +1377,7 @@ var Uploader = (function () {
                     var interceptor = _c[_b];
                     //拦截生效
                     if (interceptor.onIntercept(task)) {
-                        //从任务队列中去除任务
-                        _this.taskQueue.splice(_this.taskQueue.indexOf(task), 1);
+                        interceptedTasks.push(task);
                         Debug.d("任务拦截器拦截了任务:");
                         Debug.d(task);
                     }
@@ -1317,6 +1393,14 @@ var Uploader = (function () {
                 Debug.w("任务拦截器中断了任务队列");
                 return;
             }
+            //从任务队列中去除任务
+            for (var _d = 0, interceptedTasks_1 = interceptedTasks; _d < interceptedTasks_1.length; _d++) {
+                var task = interceptedTasks_1[_d];
+                var index = _this.taskQueue.indexOf(task);
+                if (index != -1) {
+                    _this.taskQueue.splice(index, 1);
+                }
+            }
             //回调函数函数
             _this.listener.onReady(_this.taskQueue);
             //处理图片
@@ -1328,14 +1412,44 @@ var Uploader = (function () {
                 }
             });
         };
+        this.resolveUUID = function (s) {
+            var re = /\$\(uuid\)/;
+            if (re.test(s)) {
+                return s.replace(re, UUID.uuid());
+            }
+            return s;
+        };
+        this.resolveImageInfo = function (blob, s) {
+            var widthRe = /\$\(imageInfo\.width\)/;
+            var heightRe = /\$\(imageInfo\.height\)/;
+            if (!widthRe.test(s) && !heightRe.test(s)) {
+                return Promise.resolve(s);
+            }
+            return new Promise(function (resolve) {
+                var img = new Image();
+                img.src = URL.createObjectURL(blob);
+                img.onload = function () {
+                    s = s.replace(widthRe, img.width.toString());
+                    s = s.replace(heightRe, img.height.toString());
+                    resolve(s);
+                };
+            });
+        };
+        this.onSaveKeyResolved = function (saveKey) {
+            _this._tokenShare = _this._tokenShare && _this._saveKey == saveKey;
+            return saveKey;
+        };
         this._retry = builder.getRetry;
         this._size = builder.getSize;
         this._chunk = builder.getChunk;
         this._auto = builder.getAuto;
         this._multiple = builder.getMultiple;
         this._accept = builder.getAccept;
+        this._button = builder.getButton;
+        this._buttonEventName = builder.getButtonEventName;
         this._compress = builder.getCompress;
         this._scale = builder.getScale;
+        this._saveKey = builder.getSaveKey;
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
@@ -1397,6 +1511,10 @@ var Uploader = (function () {
         document.body.appendChild(this.fileInput);
         //选择文件监听器
         this.fileInput.addEventListener('change', this.handleFiles, false);
+        if (this._button != undefined) {
+            var button = document.getElementById(this._button);
+            button.addEventListener(this._buttonEventName, this.chooseFile.bind(this));
+        }
     };
     /**
      * 上传完成或者失败后,对本次上传任务进行清扫
@@ -1439,7 +1557,9 @@ var Uploader = (function () {
             else {
                 task = new DirectTask(file);
             }
-            task.key = this.listener.onTaskGetKey(task);
+            if (this._saveKey == false) {
+                task.key = this.listener.onTaskGetKey(task);
+            }
             this.taskQueue.push(task);
         }
     };
@@ -1511,7 +1631,7 @@ var Uploader = (function () {
      * 检验选项合法性
      */
     Uploader.prototype.validateOptions = function () {
-        if (!this.tokenFunc) {
+        if (!this._tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
         if (!this.scale || !this.scale instanceof Array || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
@@ -1565,6 +1685,58 @@ var Uploader = (function () {
      */
     Uploader.prototype.chooseFile = function () {
         this.fileInput.click();
+    };
+    Uploader.prototype.getToken = function (task) {
+        var _this = this;
+        if (this._tokenShare && this._token != undefined) {
+            return Promise.resolve(this._token);
+        }
+        Debug.d("\u5F00\u59CB\u83B7\u53D6\u4E0A\u4F20token");
+        return Promise.resolve(this._tokenFunc(this, task)).then(function (token) {
+            Debug.d("\u4E0A\u4F20token\u83B7\u53D6\u6210\u529F " + token);
+            _this._token = token;
+            return token;
+        });
+    };
+    Uploader.prototype.requestTaskToken = function (task, url) {
+        var _this = this;
+        return this.resolveSaveKey(task).then(function (saveKey) {
+            return _this.requestToken(url, saveKey);
+        });
+    };
+    Uploader.prototype.requestToken = function (url, saveKey) {
+        return new Promise(function (resolve, reject) {
+            if (typeof saveKey == "string") {
+                url += ((/\?/).test(url) ? "&" : "?") + "saveKey=" + encodeURIComponent(saveKey);
+            }
+            url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime();
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState != XMLHttpRequest.DONE) {
+                    return;
+                }
+                if (xhr.status == 200) {
+                    resolve(xhr.response.uptoken);
+                    return;
+                }
+                reject(xhr.response);
+            };
+            xhr.onabort = function () { reject('aborted'); };
+            xhr.responseType = 'json';
+            xhr.send();
+        });
+    };
+    Uploader.prototype.resolveSaveKey = function (task) {
+        var _this = this;
+        var saveKey = this._saveKey;
+        if (typeof saveKey != "string") {
+            return Promise.resolve(undefined);
+        }
+        return Promise.resolve(saveKey)
+            .then(this.resolveUUID)
+            .then(function (saveKey) { return _this.resolveImageInfo(task.file, saveKey); })
+            .then(this.onSaveKeyResolved);
     };
     Object.defineProperty(Uploader.prototype, "retry", {
         get: function () {
@@ -1629,33 +1801,9 @@ var Uploader = (function () {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Uploader.prototype, "tokenShare", {
-        get: function () {
-            return this._tokenShare;
-        },
-        enumerable: true,
-        configurable: true
-    });
     Object.defineProperty(Uploader.prototype, "chunk", {
         get: function () {
             return this._chunk;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Uploader.prototype, "tokenFunc", {
-        get: function () {
-            return this._tokenFunc;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Uploader.prototype, "token", {
-        get: function () {
-            return this._token;
-        },
-        set: function (value) {
-            this._token = value;
         },
         enumerable: true,
         configurable: true

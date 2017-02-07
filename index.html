@@ -45,20 +45,21 @@
             .scale([640, 0])
             .tokenShare(false)
             .multiple(false)
+            .button('button')
             .accept(['image/*'])
             .tokenFunc(function (setToken) {
                 var token = "7zKwxyJ8vJiFYZ_dt1wLGIkcgNqXusjtHtW0Xo9l:mgik0WRf__ju0g7nNBZhHm3GcSU=:eyJzY29wZSI6ImdzY3ctaW1hZ2UiLCJkZWFkbGluZSI6MTQ3OTQ3MDE2NX0=";
                 setToken(token);
             }).listener({
                 onReady: function (tasks) {
-                    console.log('onReady');
-                    //获取图片的base64编码
-                    for (var i = 0; i < tasks.length; i++) {
-                        var task = tasks[i];
-                        getPreviewImage(task.file, function (base64) {
-                            console.log(base64);
-                        });
-                    }
+//                    console.log('onReady');
+//                    //获取图片的base64编码
+//                    for (var i = 0; i < tasks.length; i++) {
+//                        var task = tasks[i];
+//                        getPreviewImage(task.file, function (base64) {
+//                            console.log(base64);
+//                        });
+//                    }
                 }, onStart: function (tasks) {
                     console.log('onStart');
                 }, onTaskProgress: function (task) {
@@ -73,10 +74,6 @@
                     console.log('onFinish');
                 }
             }).build();
-        button = document.getElementById('button');
-        button.addEventListener("click", function () {
-            qiniu.chooseFile();
-        });
     };
 </script>
 </body>
