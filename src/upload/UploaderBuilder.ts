@@ -1,4 +1,6 @@
 import Uploader from "./Uploader";
+import BaseTask from "./task/BaseTask";
+import TokenFunc from "./TokenFunc";
 import Interceptor from "./interceptor/UploadInterceptor";
 import SimpleUploadInterceptor from "./interceptor/SimpleUploadInterceptor";
 import UploadListener from "./hook/UploadListener";
@@ -25,7 +27,8 @@ class UploaderBuilder {
     private _compress: number = 1;//图片压缩质量
     private _scale: number[] = [0, 0];//缩放大小,限定高度等比[h:200,w:0],限定宽度等比[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
-    private _tokenFunc: Function;//token获取函数
+    private _saveKey: boolean | string = false;
+    private _tokenFunc: TokenFunc;//token获取函数
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[] = [];//任务拦截器
     private _isDebug: boolean = false;//
@@ -135,12 +138,38 @@ class UploaderBuilder {
     }
 
     /**
+     * 设置 saveKey
+     * @param saveKey
+     * @returns {UploaderBuilder}
+     */
+    public saveKey(saveKey: boolean | string): UploaderBuilder {
+        this._saveKey = saveKey;
+        return this;
+    }
+
+    /**
+     * 获取Token的地址
+     * @param tokenUrl
+     * @returns {UploaderBuilder}
+     */
+    public tokenUrl(tokenUrl): UploaderBuilder {
+        this._tokenFunc = (uploader: Uploader, task: BaseTask) => {
+            return uploader.requestTaskToken(task, tokenUrl);
+        }
+        return this;
+    }
+
+    /**
      * 获取Token的函数
      * @param tokenFunc
      * @returns {UploaderBuilder}
      */
     public tokenFunc(tokenFunc): UploaderBuilder {
-        this._tokenFunc = tokenFunc;
+        this._tokenFunc = (uploader: Uploader, task: BaseTask) => {
+            return new Promise((resolve) => {
+                tokenFunc(resolve, task);
+            });
+        };
         return this;
     }
 
@@ -216,7 +245,11 @@ class UploaderBuilder {
         return this._listener;
     }
 
-    get getTokenFunc(): Function {
+    get getSaveKey(): boolean | string {
+        return this._saveKey;
+    }
+
+    get getTokenFunc(): TokenFunc {
         return this._tokenFunc;
     }
 

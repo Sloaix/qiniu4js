@@ -16,19 +16,11 @@ class ChunkUploadPattern implements IUploadPattern {
 
     upload(task: ChunkTask): void {
         this.task = task;
-        if (this.uploader.tokenShare && this.uploader.token) {
+
+        this.uploader.getToken(task).then((token: string) => {
             task.startDate = new Date();
-            this.uploadBlock(this.uploader.token);
-        }
-        else {
-            debug.d(`开始获取token`);
-            this.uploader.tokenFunc((token: string) => {
-                debug.d(`token获取成功 ${token}`);
-                this.uploader.token = token;
-                task.startDate = new Date();
-                this.uploadBlock(token);
-            }, task);
-        }
+            this.uploadBlock(token);
+        });
     }
 
     private uploadBlock(token: string) {
