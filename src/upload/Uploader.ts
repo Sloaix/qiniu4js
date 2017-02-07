@@ -1,6 +1,8 @@
 import BaseTask from "./task/BaseTask";
 import DirectTask from "./task/DirectTask";
 import {ChunkTask} from "./task/ChunkTask";
+import TokenFunc from "./TokenFunc";
+import UUID from "./uuid/UUID";
 import UploaderBuilder from "./UploaderBuilder";
 import debug from "../util/Debug";
 import Interceptor from "./interceptor/UploadInterceptor";
@@ -29,7 +31,8 @@ class Uploader {
     private _compress: number;//图片压缩质量
     private _scale: number[] = [];//缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
     private _listener: UploadListener;//监听器
-    private _tokenFunc: Function;//token获取函数
+    private _saveKey: boolean | string = false;
+    private _tokenFunc: TokenFunc;//token获取函数
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[];//任务拦截器
     private _domain: string;//上传域名
@@ -43,6 +46,7 @@ class Uploader {
         this._accept = builder.getAccept;
         this._compress = builder.getCompress;
         this._scale = builder.getScale;
+        this._saveKey = builder.getSaveKey;
         this._tokenFunc = builder.getTokenFunc;
         this._tokenShare = builder.getTokenShare;
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
@@ -228,7 +232,9 @@ class Uploader {
             else {
                 task = new DirectTask(file);
             }
-            task.key = this.listener.onTaskGetKey(task);
+            if (this._saveKey == false) {
+                task.key = this.listener.onTaskGetKey(task);
+            }
             this.taskQueue.push(task);
         }
     }
@@ -308,7 +314,7 @@ class Uploader {
      * 检验选项合法性
      */
     private  validateOptions(): void {
-        if (!this.tokenFunc) {
+        if (!this._tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
         if (!this.scale || !this.scale instanceof Array || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
@@ -368,6 +374,90 @@ class Uploader {
         this.fileInput.click();
     }
 
+    public getToken(task: BaseTask): Promise<string> {
+        if (this._tokenShare && this._token != undefined) {
+            return Promise.resolve(this._token);
+        }
+        debug.d(`开始获取上传token`);
+        return Promise.resolve(this._tokenFunc(this, task)).then((token: string): string => {
+            debug.d(`上传token获取成功 ${token}`);
+            this._token = token;
+            return token;
+        });
+    }
+
+    public requestTaskToken(task: BaseTask, url: string): Promise<string> {
+        return this.resolveSaveKey(task).then((saveKey: string) => {
+            return this.requestToken(url, saveKey);
+        });
+    }
+
+    private requestToken(url: string, saveKey: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (typeof saveKey == "string") {
+                url += ((/\?/).test(url) ? "&" : "?") + "saveKey=" + encodeURIComponent(saveKey);
+            }
+            url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime();
+
+            let xhr: XMLHttpRequest = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState != XMLHttpRequest.DONE) {
+                    return;
+                }
+                if (xhr.status == 200) {
+                    resolve(xhr.response.uptoken);
+                    return;
+                }
+                reject(xhr.response);
+            };
+            xhr.onabort = () => { reject('aborted'); };
+            xhr.responseType = 'json';
+            xhr.send();
+        });
+    }
+
+    private resolveSaveKey(task: BaseTask): Promise<string> {
+        let saveKey = this._saveKey;
+        if (typeof saveKey != "string") {
+            return Promise.resolve(undefined);
+        }
+        return Promise.resolve(saveKey)
+            .then(this.resolveUUID)
+            .then(saveKey => this.resolveImageInfo(task.file, saveKey))
+            .then(this.onSaveKeyResolved);
+    }
+
+    private resolveUUID = (s: string): string => {
+        let re = /\$\(uuid\)/;
+        if (re.test(s)) {
+            return s.replace(re, UUID.uuid());
+        }
+        return s;
+    }
+
+    private resolveImageInfo = (blob: Blob, s: string): Promise<string> => {
+        let widthRe = /\$\(imageInfo\.width\)/;
+        let heightRe = /\$\(imageInfo\.height\)/;
+        if (!widthRe.test(s) && !heightRe.test(s)) {
+            return Promise.resolve(s);
+        }
+        return new Promise<string>((resolve) => {
+            let img = new Image();
+            img.src = URL.createObjectURL(blob);
+            img.onload = () => {
+                s = s.replace(widthRe, img.width.toString());
+                s = s.replace(heightRe, img.height.toString());
+                resolve(s);
+            };
+        });
+    }
+
+    private onSaveKeyResolved = (saveKey: string): string => {
+        this._tokenShare = this._tokenShare && this._saveKey == saveKey;
+        return saveKey;
+    }
+
     get retry(): number {
         return this._retry;
     }
@@ -404,24 +494,8 @@ class Uploader {
         return this._fileInput;
     }
 
-    get tokenShare(): boolean {
-        return this._tokenShare;
-    }
-
     get chunk(): boolean {
         return this._chunk;
-    }
-
-    get tokenFunc(): Function {
-        return this._tokenFunc;
-    }
-
-    get token(): string {
-        return this._token;
-    }
-
-    set token(value: string) {
-        this._token = value;
     }
 
     get taskQueue(): BaseTask[] {
