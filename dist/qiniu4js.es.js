@@ -896,7 +896,7 @@ var Debug = (function () {
         }
         console.debug(object);
     };
-    
+
     Debug.l = function (object) {
         if (!Debug._enable) {
             return;
@@ -1176,7 +1176,10 @@ var ChunkUploadPattern = (function () {
     ChunkUploadPattern.prototype.concatChunks = function (token) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            var encodedKey = _this.task.key ? btoa(encodeURIComponent(_this.task.key)) : null;
+            var encodedKey = _this.task.key ? btoa(_this.task.key) : null;
+            // 安全字符串 参考：https://developer.qiniu.com/kodo/api/mkfile
+            encodedKey = encodedKey.replace(/\+/g, '-');
+            encodedKey = encodedKey.replace(/\//g, '_');
             var url = _this.getMakeFileUrl(_this.task.file.size, encodedKey);
             //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
             var ctxListString = '';
