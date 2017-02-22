@@ -118,7 +118,11 @@ class ChunkUploadPattern implements IUploadPattern {
 
     private concatChunks(token: string) {
         return new Promise((resolve, reject) => {
-            let encodedKey = this.task.key ? btoa(encodeURIComponent(this.task.key)) : null;
+            let encodedKey = this.task.key ? btoa(this.task.key) : null;
+            // 安全字符串 参考：https://developer.qiniu.com/kodo/api/mkfile
+            encodedKey = encodedKey.replace(/\+/g, '-');
+            encodedKey = encodedKey.replace(/\//g, '_');
+
             let url = this.getMakeFileUrl(this.task.file.size, encodedKey);
             //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
             let ctxListString = '';

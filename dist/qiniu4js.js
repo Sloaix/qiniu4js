@@ -902,7 +902,7 @@ var Debug = (function () {
         }
         console.debug(object);
     };
-
+    
     Debug.l = function (object) {
         if (!Debug._enable) {
             return;
@@ -1731,7 +1731,9 @@ var Uploader = (function () {
                 }
                 reject(xhr.response);
             };
-            xhr.onabort = function () { reject('aborted'); };
+            xhr.onabort = function () {
+                reject('aborted');
+            };
             xhr.responseType = 'json';
             xhr.send();
         });
@@ -1835,10 +1837,6 @@ var Uploader = (function () {
         configurable: true
     });
     Object.defineProperty(Uploader.prototype, "interceptors", {
-        //
-        // get fileInputId(): string {
-        //     return this._fileInputId;
-        // }
         get: function () {
             return this._interceptors;
         },
@@ -1848,6 +1846,13 @@ var Uploader = (function () {
     Object.defineProperty(Uploader.prototype, "domain", {
         get: function () {
             return this._domain;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Uploader.prototype, "token", {
+        get: function () {
+            return this._token;
         },
         enumerable: true,
         configurable: true

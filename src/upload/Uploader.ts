@@ -420,7 +420,9 @@ class Uploader {
                 }
                 reject(xhr.response);
             };
-            xhr.onabort = () => { reject('aborted'); };
+            xhr.onabort = () => {
+                reject('aborted');
+            };
             xhr.responseType = 'json';
             xhr.send();
         });
@@ -520,17 +522,16 @@ class Uploader {
         this._tasking = value;
     }
 
-    //
-    // get fileInputId(): string {
-    //     return this._fileInputId;
-    // }
-
     get interceptors(): Interceptor[] {
         return this._interceptors;
     }
 
     get domain(): string {
         return this._domain;
+    }
+
+    get token(): string {
+        return this._token;
     }
 }
 
