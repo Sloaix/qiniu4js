@@ -28,7 +28,7 @@ class ChunkUploadPattern implements IUploadPattern {
         for (let block: Block of this.task.blocks) {
             for (let chunk: Chunk of block.chunks) {
                 chain = chain.then(() => {
-                    return this.uploadChunk(chunk, this.uploader.token)
+                    return this.uploadChunk(chunk, token)
                 });
             }
         }
