@@ -71,13 +71,44 @@ let uploader = new UploaderBuilder()
 	.auto(true)//选中文件后立即上传，默认true
 	.multiple(true)//是否支持多文件选中，默认true
 	.accept(['.gif','.png','video/*'])//过滤文件，默认无，详细配置见http://www.w3schools.com/tags/att_input_accept.asp
-	.tokenShare(true)//在一次上传队列中，是否分享token,如果为false每上传一个文件都需要请求一次Token，默认true
+
+	// 在一次上传队列中，是否分享token，如果为false每上传一个文件都需要请求一次token，默认true。
+	//
+	// 如果saveKey中有需要在客户端解析的变量，则忽略该值。
+	.tokenShare(true)
+
+	// 设置token获取函数，token获取完成后，必须调用`setToken(token);`不然上传任务不会执行。
+	//
+	// 覆盖tokenUrl的设置。
 	.tokenFunc(function (setToken,task) {
-	    //token获取函数，token获取完成后，必须调用`setToken(token);`不然上传任务不会执行。
 		setTimeout(function () {
 			setToken("token");
 		}, 1000);
 	})
+
+	// 设置token获取URL：客户端向该地址发送HTTP GET请求, 若成功，服务器端返回{"uptoken": 'i-am-token'}。
+	//
+	// 覆盖tokenFunc的设置。
+	.tokenUrl('/qiniu/upload-token')
+
+	// 设置token获取过程是否使用了saveKey，默认false。
+	//
+	// 若为true，则listener中的onTaskGetKey不会被调用。
+	.saveKey(true)
+
+	// 设置tokenUrl请求中的saveKey参数和七牛上传策略中的saveKey字段。
+	//
+	// 客户端解析变量（七牛不支持在saveKey中使用这些变量）：
+	// * $(uuid)
+	// * $(imageInfo.width) $(imageInfo.height)
+	//
+	// 如参数中有需要在客户端解析的变量，则忽略tokenShare的设置。
+	//
+	// 若设置了，则listener中的onTaskGetKey不会被调用。
+	//
+	// 关于saveKey，见https://developer.qiniu.com/kodo/manual/vars
+	.saveKey('dir1/dir2/$(uuid)_$(imageInfo.width)x$(imageInfo.height)$(ext)')
+
 	//任务拦截器
     .interceptor({
         //拦截任务,返回true，任务将会从任务队列中剔除，不会被上传
