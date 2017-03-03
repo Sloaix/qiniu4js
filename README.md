@@ -177,6 +177,9 @@ button.addEventListener("click", function () {
 
 
 ## 版本说明
+- 1.0.10 (2017-2-7)
+    - fix https://github.com/lsxiao/qiniu4js/issues/21
+    - fix https://github.com/lsxiao/qiniu4js/issues/18
 - 1.0.8 (2017-2-7)
     - button方法，可以指定上传按钮，传入id
     
