@@ -529,10 +529,6 @@ class Uploader {
     get domain(): string {
         return this._domain;
     }
-
-    get token(): string {
-        return this._token;
-    }
 }
 
 export default Uploader;
