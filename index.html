@@ -104,10 +104,8 @@
 
     function getToken(accessKey, secretKey, putPolicy) {
         var put_policy = JSON.stringify(putPolicy);
-        console.log("put_policy = ", put_policy);
 
         var encoded = base64encode(utf16to8(put_policy));
-        console.log("encoded = ", encoded);
 
         var hash = CryptoJS.HmacSHA1(encoded, secretKey);
         var encoded_signed = hash.toString(CryptoJS.enc.Base64);
@@ -126,10 +124,11 @@
     window.onload = function () {
         var qiniu = new Qiniu.UploaderBuilder()
             .debug(true)
-            .compress(0.5)
-            .scale([640, 0])
+//            .compress(0.5)
+//            .scale([640, 0])
             .tokenShare(false)
-            .multiple(false)
+            .chunk(true)
+            .multiple(true)
             .button('button')
             .accept(['image/*'])
             .tokenFunc(function (setToken) {
@@ -138,17 +137,11 @@
             }).listener({
                 onReady: function (tasks) {
                 }, onStart: function (tasks) {
-                    console.log('onStart');
                 }, onTaskProgress: function (task) {
-                    console.log('onTaskProgress');
                 }, onTaskSuccess: function (task) {
-                    console.log('onTaskSuccess');
                 }, onTaskFail: function (task) {
-                    console.log('onTaskFail');
                 }, onTaskRetry: function (task) {
-                    console.log('onTaskRetry');
                 }, onFinish: function (tasks) {
-                    console.log('onFinish');
                 }
             }).build();
     };

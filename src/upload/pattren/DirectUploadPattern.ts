@@ -9,7 +9,7 @@ class DirectUploadPattern implements IUploadPattern {
     private uploader: Uploader;
     private task: DirectTask;
 
-    init(uploader: Uploader): void {
+    constructor(uploader: Uploader) {
         this.uploader = uploader;
     }
 
@@ -24,6 +24,7 @@ class DirectUploadPattern implements IUploadPattern {
             task.startDate = new Date();
             this.uploadFile(token);
         });
+
     }
 
 
@@ -119,6 +120,7 @@ class DirectUploadPattern implements IUploadPattern {
 
         let formData: FormData = this.createFormData(token);
         xhr.send(formData);
+        debug.d("发送ajax post 请求");
     }
 
 
@@ -128,6 +130,7 @@ class DirectUploadPattern implements IUploadPattern {
      * @returns {boolean}
      */
     private retryTask(task: DirectTask): boolean {
+        debug.d("开始尝试重传");
         //达到重试次数
         if (task.retry >= this.uploader.retry) {
             debug.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
