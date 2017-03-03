@@ -10,6 +10,10 @@ class ChunkUploadPattern implements IUploadPattern {
     private uploader: Uploader;
     private task: ChunkTask;
 
+    constructor(uploader: Uploader) {
+        this.uploader = uploader;
+    }
+
     init(uploader: Uploader): void {
         this.uploader = uploader;
     }
@@ -24,20 +28,28 @@ class ChunkUploadPattern implements IUploadPattern {
     }
 
     private uploadBlock(token: string) {
+        debug.d(`准备开始上传块`);
         let chain: Promise = Promise.resolve();
-        for (let block: Block of this.task.blocks) {
-            for (let chunk: Chunk of block.chunks) {
+        debug.d(`共${this.task.blocks.length}块等待上传`);
+        debug.d(`共${this.task.totalChunkCount}分片等待上传`);
+
+        this.task.blocks.forEach((block, blockIndex) => {
+            block.chunks.forEach((chunk, chunkIndex) => {
                 chain = chain.then(() => {
+                    debug.d(`开始上传第${(blockIndex + 1)}块,第${(chunkIndex + 1)}片`);
                     return this.uploadChunk(chunk, token)
                 });
-            }
-        }
+            });
+        });
+
 
         chain.then(() => {
             return this.concatChunks(token);
         }).then(() => {
             //所有任务都结束了
             if (this.uploader.isTaskQueueFinish()) {
+                debug.d(`上传任务队列已结束`);
+
                 //更改任务执行中标志
                 this.uploader.tasking = false;
 
@@ -120,9 +132,10 @@ class ChunkUploadPattern implements IUploadPattern {
         return new Promise((resolve, reject) => {
             let encodedKey = this.task.key ? btoa(this.task.key) : null;
             // 安全字符串 参考：https://developer.qiniu.com/kodo/api/mkfile
-            encodedKey = encodedKey.replace(/\+/g, '-');
-            encodedKey = encodedKey.replace(/\//g, '_');
-
+            if (encodedKey) {
+                encodedKey = encodedKey.replace(/\+/g, '-');
+                encodedKey = encodedKey.replace(/\//g, '_');
+            }
             let url = this.getMakeFileUrl(this.task.file.size, encodedKey);
             //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
             let ctxListString = '';
