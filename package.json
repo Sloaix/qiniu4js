@@ -11,6 +11,7 @@
     "js",
     "sdk"
   ],
+  "types": "./types/Main.d.ts",
   "main": "qiniu4js.js",
   "jsnext:main": "qiniu4js.es.js",
   "bugs": {
