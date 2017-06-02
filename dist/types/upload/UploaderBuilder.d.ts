@@ -57,6 +57,12 @@ declare class UploaderBuilder {
      */
     retry(retry: number): UploaderBuilder;
     /**
+     * 设置分片大小
+     * @param size 分块大小,单位字节,默认4*1024*1024字节(4mb)
+     * @returns {UploaderBuilder}
+     */
+    size(size: number): UploaderBuilder;
+    /**
      * 选择文件后,是否自动上传
      * @param auto 默认true
      * @returns {UploaderBuilder}
