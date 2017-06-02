@@ -23,18 +23,16 @@
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-0": "^6.24.1",
     "del": "^2.2.2",
-    "rollup": "^0.36.3",
-    "rollup-plugin-babel": "^2.7.1",
-    "rollup-plugin-typescript": "^0.8.1",
+    "npmlog": "^4.0.2",
     "source-map-loader": "^0.2.1",
     "ts-loader": "^2.1.0",
     "typescript": "^2.3.4",
-    "webpack": "^2.6.1"
+    "webpack": "^2.6.1",
+    "rimraf": "^2.6.1"
   },
   "scripts": {
-    "build": "node tools/build"
-  },
-  "dependencies": {
-    "npmlog": "^4.0.2"
+    "clean": "rimraf ./dist && mkdir dist",
+    "prebuild": "npm run clean && node copy.js",
+    "build": "webpack --env=es5 && webpack -p --env=es5min && webpack --env=es6"
   }
 }

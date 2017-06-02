@@ -1,42 +1,47 @@
 const path = require('path')
 
-module.exports = {
+module.exports = env => ({
   entry: './src/Main.ts',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'qiniu4js.js',
+    filename: getFileName(env),
     library: 'Qiniu',
     libraryTarget: 'umd'
   },
   module: {
     rules: [
-      // {
-      //   enforce: 'pre',
-      //   test: /\.js$/,
-      //   loader: 'source-map-loader'
-      // },
-      // {
-      //   enforce: 'pre',
-      //   test: /\.ts?$/,
-      //   use: 'source-map-loader'
-      // },
-      // {
-      //   test: /\.ts?$/,
-      //   loader: 'ts-loader',
-      //   exclude: /node_modules/,
-      // },
+      {
+        enforce: 'pre',
+        test: /\.js$/,
+        loader: 'source-map-loader'
+      },
       {
         test: /\.ts?$/,
-        // use: [
-        //   'babel-loader',
-        //   'ts-loader'
-        // ],
-        loader: 'babel-loader!ts-loader',
+        exclude: '/node_modules',
+        use: [
+          {
+            loader: 'babel-loader'
+          },
+          {
+            loader: 'ts-loader'
+          }
+        ]
       }
     ]
   },
   resolve: {
     extensions: ['.ts', '.js']
   },
-  // devtool: 'inline-source-map',
+  devtool: 'inline-source-map',
+})
+
+function getFileName (env) {
+  if (env == 'es5min') {
+    return 'qiniu4js.min.js'
+  } else if (env == 'es5') {
+    return 'qiniu4js.js'
+  }
+  else if (env == 'es6') {
+    return 'qiniu4js.es.js'
+  }
 }
