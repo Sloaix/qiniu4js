@@ -1,9 +1,11 @@
 # qiniu4js  [![npm version](https://badge.fury.io/js/qiniu4js.svg)](https://badge.fury.io/js/qiniu4js)
+
+
+(前段时间作者忙公司的Android项目去了，还要兼职维护Apollo等开源库，实在抽不开身，看着各位提交的pr,和各种issues，发送给我的邮件，知乎私信，我实在是不好意思了，6月份开始，会开始继续迭代维护qiniu4js，详细计划见https://github.com/lsxiao/qiniu4js/projects/1。)
+
 qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
-使用TypeScript编写，不依赖任何三方库，纯代码不包含任何界面元素，使用HTML5 文件API上传(目前和未来不会支持HTML4以及FLASH)。
-
-支持UMD模块导入。
+TypeScript编写，UMD导入。
 
 #### [gitter在线交流](https://gitter.im/qiniu4js/Lobby)
 
