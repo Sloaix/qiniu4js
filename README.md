@@ -7,7 +7,6 @@ qiniu4js目前可能是七牛JavaScript浏览器文件上传的最好实现。
 
 TypeScript编写，UMD导入。
 
-#### [gitter在线交流](https://gitter.im/qiniu4js/Lobby)
 
 ## 已完成
 
