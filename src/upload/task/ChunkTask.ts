@@ -54,17 +54,18 @@ class ChunkTask extends BaseTask {
      * @returns {Block}
      */
     get processingBlock(): Block {
-        for (let block: Block of this._blocks) {
+        for (let block of this._blocks) {
             if (!block.processing) {
                 continue;
             }
             return block;
         }
+        throw Error("找不到正在处理的Block")
     }
 
     get finishedBlocksSize(): number {
         let size: number = 0;
-        for (let block: Block of this._blocks) {
+        for (let block of this._blocks) {
             size += (block.isFinish ? block.data.size : 0);
         }
         return size;
@@ -72,8 +73,8 @@ class ChunkTask extends BaseTask {
 
     get chunks(): Chunk[] {
         let array: Chunk[] = [];
-        for (let block: Block of this._blocks) {
-            for (let chunk: Chunk of block.chunks) {
+        for (let block of this._blocks) {
+            for (let chunk of block.chunks) {
                 array.push(chunk);
             }
         }
@@ -85,17 +86,18 @@ class ChunkTask extends BaseTask {
      * @returns {Block}
      */
     get processingChunk(): Chunk {
-        for (let block: Block of this._blocks) {
+        for (let block of this._blocks) {
             if (!block.processing) {
                 continue;
             }
-            for (let chunk: Chunk of block.chunks) {
+            for (let chunk of block.chunks) {
                 if (!chunk.processing) {
                     continue;
                 }
                 return chunk;
             }
         }
+        throw Error("找不到正在处理的Chunk")
     }
 
     /**
@@ -104,7 +106,7 @@ class ChunkTask extends BaseTask {
      */
     get totalChunkCount(): number {
         let count = 0;
-        for (let block: Block of this._blocks) {
+        for (let block of this._blocks) {
             count += block.chunks.length;
         }
         return count;

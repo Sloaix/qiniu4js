@@ -1,7 +1,7 @@
 import IUploadPattern from "./IUploadPattern";
 import Uploader from "../Uploader";
-import {ChunkTask, Block, Chunk} from "../task/ChunkTask";
-import debug from "../../util/Debug";
+import {ChunkTask, Chunk} from "../task/ChunkTask";
+import log from "../../util/Log";
 
 /**
  * 分块上传
@@ -28,15 +28,15 @@ class ChunkUploadPattern implements IUploadPattern {
     }
 
     private uploadBlock(token: string) {
-        debug.d(`准备开始上传块`);
+        log.d(`准备开始上传块`);
         let chain: Promise<any> = Promise.resolve();
-        debug.d(`共${this.task.blocks.length}块等待上传`);
-        debug.d(`共${this.task.totalChunkCount}分片等待上传`);
+        log.d(`共${this.task.blocks.length}块等待上传`);
+        log.d(`共${this.task.totalChunkCount}分片等待上传`);
 
         this.task.blocks.forEach((block, blockIndex) => {
             block.chunks.forEach((chunk, chunkIndex) => {
                 chain = chain.then(() => {
-                    debug.d(`开始上传第${(blockIndex + 1)}块,第${(chunkIndex + 1)}片`);
+                    log.d(`开始上传第${(blockIndex + 1)}块,第${(chunkIndex + 1)}片`);
                     return this.uploadChunk(chunk, token)
                 });
             });
@@ -48,7 +48,7 @@ class ChunkUploadPattern implements IUploadPattern {
         }).then(() => {
             //所有任务都结束了
             if (this.uploader.isTaskQueueFinish()) {
-                debug.d(`上传任务队列已结束`);
+                log.d(`上传任务队列已结束`);
 
                 //更改任务执行中标志
                 this.uploader.tasking = false;
@@ -57,7 +57,7 @@ class ChunkUploadPattern implements IUploadPattern {
                 this.uploader.listener.onFinish(this.uploader.taskQueue);
             }
         }).catch((response) => {
-            debug.w(`${this.task.file.name}分块上传失败`);
+            log.w(`${this.task.file.name}分块上传失败`);
             this.task.error = response;
             this.task.isSuccess = false;
             this.task.isFinish = true;
@@ -71,7 +71,7 @@ class ChunkUploadPattern implements IUploadPattern {
             let isFirstChunkInBlock = chunk.block.chunks.indexOf(chunk) == 0;
             let chunkIndex = chunk.block.chunks.indexOf(chunk);
             //前一个chunk,如果存在的话
-            let prevChunk = isFirstChunkInBlock ? null : chunk.block.chunks[chunkIndex - 1];
+            let prevChunk: any = isFirstChunkInBlock ? null : chunk.block.chunks[chunkIndex - 1];
 
             let url: string = isFirstChunkInBlock ? this.getUploadBlockUrl(chunk.block.data.size) : this.getUploadChunkUrl(chunk.start, prevChunk ? prevChunk.ctx : null, prevChunk ? prevChunk.host : null);
 
@@ -130,7 +130,7 @@ class ChunkUploadPattern implements IUploadPattern {
 
     private concatChunks(token: string) {
         return new Promise((resolve, reject) => {
-            let encodedKey = this.task.key ? btoa(this.task.key) : null;
+            let encodedKey: any = this.task.key ? btoa(this.task.key) : null;
             // 安全字符串 参考：https://developer.qiniu.com/kodo/api/mkfile
             if (encodedKey) {
                 encodedKey = encodedKey.replace(/\+/g, '-');
@@ -165,7 +165,7 @@ class ChunkUploadPattern implements IUploadPattern {
                         resolve();
                     }
                     else if (this.retryTask(this.task)) {
-                        debug.w(`${this.task.file.name}分块上传失败,准备开始重传`);
+                        log.w(`${this.task.file.name}分块上传失败,准备开始重传`);
                         this.uploader.listener.onTaskRetry(this.task);
                     }
                     else {
@@ -215,11 +215,11 @@ class ChunkUploadPattern implements IUploadPattern {
     private retryTask(task: ChunkTask): boolean {
         //达到重试次数
         if (task.retry >= this.uploader.retry) {
-            debug.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
+            log.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
             return false;
         }
         task.retry++;
-        debug.w(`${task.file.name}开始重传,当前重传次数${task.retry}`);
+        log.w(`${task.file.name}开始重传,当前重传次数${task.retry}`);
         // this.upload(task);
 
         //todo

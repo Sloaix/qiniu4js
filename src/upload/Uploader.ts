@@ -4,7 +4,7 @@ import {ChunkTask} from "./task/ChunkTask";
 import TokenFunc from "./TokenFunc";
 import UUID from "./uuid/UUID";
 import UploaderBuilder from "./UploaderBuilder";
-import debug from "../util/Debug";
+import log from "../util/Log";
 import Interceptor from "./interceptor/UploadInterceptor";
 import UploadListener from "./hook/UploadListener";
 import SimpleUploadListener from "./hook/SimpleUploadListener";
@@ -55,7 +55,7 @@ class Uploader {
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;
-        debug.enable = builder.getIsDebug;
+        log.enable = builder.getIsDebug;
 
         this.validateOptions();
 
@@ -67,18 +67,6 @@ class Uploader {
      */
     private init(): void {
         this.initFileInputEl();
-        // this.initUploadPattern();
-    }
-
-    /**
-     * 初始化上传模式
-     */
-    private initUploadPattern(): void {
-        // this._directUploadPattern = new DirectUploadPattern();
-        // this._directUploadPattern.init(this);
-        //
-        // this._chunkUploadPattern = new ChunkUploadPattern();
-        // this._chunkUploadPattern.init(this);
     }
 
     /**
@@ -113,7 +101,7 @@ class Uploader {
                 acceptValue = acceptValue.substring(0, acceptValue.length - 1);
             }
             this.fileInput.accept = acceptValue;
-            debug.d(`accept类型 ${acceptValue}`);
+            log.d(`accept类型 ${acceptValue}`);
         }
 
         //将input元素添加到body子节点的末尾
@@ -123,7 +111,7 @@ class Uploader {
         this.fileInput.addEventListener('change', this.handleFiles, false);
 
         if (this._button != undefined) {
-            let button = document.getElementById(this._button);
+            let button: any = document.getElementById(this._button);
             button.addEventListener(this._buttonEventName, this.chooseFile.bind(this));
         }
     }
@@ -133,12 +121,12 @@ class Uploader {
      * 上传完成或者失败后,对本次上传任务进行清扫
      */
     private resetUploader(): void {
-        debug.d("开始重置 uploader");
+        log.d("开始重置 uploader");
         this.taskQueue.length = 0;
-        debug.d("任务队列已清空");
+        log.d("任务队列已清空");
         this._token = null;
-        debug.d("token已清空");
-        debug.d("uploader 重置完毕");
+        log.d("token已清空");
+        log.d("uploader 重置完毕");
     }
 
     /**
@@ -163,8 +151,8 @@ class Uploader {
                 //拦截生效
                 if (interceptor.onIntercept(task)) {
                     interceptedTasks.push(task);
-                    debug.d("任务拦截器拦截了任务:");
-                    debug.d(task);
+                    log.d("任务拦截器拦截了任务:");
+                    log.d(task);
                 }
                 //打断生效
                 if (interceptor.onInterrupt(task)) {
@@ -176,7 +164,7 @@ class Uploader {
         }
 
         if (isInterrupt) {
-            debug.w("任务拦截器中断了任务队列");
+            log.w("任务拦截器中断了任务队列");
             return;
         }
 
@@ -196,7 +184,7 @@ class Uploader {
         this.handleImages().then(() => {
             //自动上传
             if (this.auto) {
-                debug.d("开始自动上传");
+                log.d("开始自动上传");
                 this.start();
             }
         });
@@ -259,7 +247,7 @@ class Uploader {
                 if (!task.file.type.match('image.*')) {
                     continue;
                 }
-                debug.d(`${task.file.name} 处理前的图片大小:${task.file.size / 1024} kb`);
+                log.d(`${task.file.name} 处理前的图片大小:${task.file.size / 1024} kb`);
 
                 let canvas: HTMLCanvasElement = <HTMLCanvasElement> document.createElement('canvas');
 
@@ -304,7 +292,7 @@ class Uploader {
                         //0.95是最接近原图大小，如果质量为1的话会导致比原图大几倍。
                         canvas.toBlob((blob: Blob) => {
                             resolve(blob);
-                            debug.d(`${task.file.name} 处理后的图片大小:${blob.size / 1024} kb`);
+                            log.d(`${task.file.name} 处理后的图片大小:${blob.size / 1024} kb`);
                         }, "image/jpeg", _this.compress * 0.95);
                     }
                 ).then((blob: any) => {
@@ -323,21 +311,21 @@ class Uploader {
      * 检验选项合法性
      */
     private  validateOptions(): void {
-        debug.d("开始检查构建参数合法性");
+        log.d("开始检查构建参数合法性");
         if (!this._tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
         if (!this.scale || !(this.scale instanceof Array) || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
             throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度,必须大于等于0');
         }
-        debug.d("构建参数检查完毕");
+        log.d("构建参数检查完毕");
     }
 
     /**
      * 开始上传
      */
     public start(): void {
-        debug.d(`上传任务遍历开始`);
+        log.d(`上传任务遍历开始`);
 
         if (this.fileInput.files.length == 0) {
             throw new Error('没有选中的文件，无法开始上传');
@@ -351,16 +339,16 @@ class Uploader {
 
         //遍历任务队列
         for (let task of this.taskQueue) {
-            debug.d(`上传文件名：${task.file.name}`);
-            debug.d(`上传文件大小：${task.file.size}字节，${task.file.size / 1024} kb，${task.file.size / 1024 / 1024} mb`);
+            log.d(`上传文件名：${task.file.name}`);
+            log.d(`上传文件大小：${task.file.size}字节，${task.file.size / 1024} kb，${task.file.size / 1024 / 1024} mb`);
             //根据任务的类型调用不同的上传模式进行上传
             if (Uploader.isDirectTask(task)) {
-                debug.d('该上传任务为直传任务');
+                log.d('该上传任务为直传任务');
                 //直传
                 new DirectUploadPattern(this).upload(<DirectTask>task);
             }
             else if (Uploader.isChunkTask(task)) {
-                debug.d('该上传任务为分片任务');
+                log.d('该上传任务为分片任务');
                 //分块上传
                 new ChunkUploadPattern(this).upload(<ChunkTask>task);
             }
@@ -394,9 +382,9 @@ class Uploader {
         if (this._tokenShare && this._token != undefined) {
             return Promise.resolve(this._token);
         }
-        debug.d(`开始获取上传token`);
+        log.d(`开始获取上传token`);
         return Promise.resolve(this._tokenFunc(this, task)).then((token: string): string => {
-            debug.d(`上传token获取成功: ${token}`);
+            log.d(`上传token获取成功: ${token}`);
             this._token = token;
             return token;
         });

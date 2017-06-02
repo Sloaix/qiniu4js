@@ -18,7 +18,7 @@ class UploaderBuilder {
 
     private _retry: number = 0;//最大重试次数
     private _domain: Domain = UploaderBuilder.UPLOAD_DOMAIN;//上传域名
-    private _scheme: Scheme = null;//上传域名的 scheme
+    private _scheme: Scheme = "http";//上传域名的 scheme
     private _size: number = 1024 * 1024;//分片大小,单位字节,上限4m,不能为0
     private _chunk: boolean = true;//分块上传
     private _auto: boolean = true;//自动上传,每次选择文件后
@@ -76,15 +76,15 @@ class UploaderBuilder {
         return this;
     }
 
-    /**
-     * 设置分片大小
-     * @param size 分块大小,单位字节,默认4*1024*1024字节(4mb)
-     * @returns {UploaderBuilder}
-     */
-    private size(size: number): UploaderBuilder {
-        this._size = Math.min(Math.max(size, 1), UploaderBuilder.MAX_CHUNK_SIZE);
-        return this;
-    }
+    // /**
+    //  * 设置分片大小
+    //  * @param size 分块大小,单位字节,默认4*1024*1024字节(4mb)
+    //  * @returns {UploaderBuilder}
+    //  */
+    // private size(size: number): UploaderBuilder {
+    //     this._size = Math.min(Math.max(size, 1), UploaderBuilder.MAX_CHUNK_SIZE);
+    //     return this;
+    // }
 
     /**
      * 选择文件后,是否自动上传
@@ -166,10 +166,10 @@ class UploaderBuilder {
      * @param tokenUrl
      * @returns {UploaderBuilder}
      */
-    public tokenUrl(tokenUrl): UploaderBuilder {
+    public tokenUrl(tokenUrl: string): UploaderBuilder {
         this._tokenFunc = (uploader: Uploader, task: BaseTask) => {
             return uploader.requestTaskToken(task, tokenUrl);
-        }
+        };
         return this;
     }
 
@@ -178,7 +178,7 @@ class UploaderBuilder {
      * @param tokenFunc
      * @returns {UploaderBuilder}
      */
-    public tokenFunc(tokenFunc): UploaderBuilder {
+    public tokenFunc(tokenFunc: Function): UploaderBuilder {
         this._tokenFunc = (uploader: Uploader, task: BaseTask) => {
             return new Promise((resolve) => {
                 tokenFunc(resolve, task);

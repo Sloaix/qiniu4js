@@ -5,30 +5,38 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'qiniu4js.js',
-    library: 'Qiniu4js',
+    library: 'Qiniu',
     libraryTarget: 'umd'
   },
   module: {
     rules: [
+      // {
+      //   enforce: 'pre',
+      //   test: /\.js$/,
+      //   loader: 'source-map-loader'
+      // },
+      // {
+      //   enforce: 'pre',
+      //   test: /\.ts?$/,
+      //   use: 'source-map-loader'
+      // },
+      // {
+      //   test: /\.ts?$/,
+      //   loader: 'ts-loader',
+      //   exclude: /node_modules/,
+      // },
       {
-        enforce: 'pre',
-        test: /\.js$/,
-        loader: 'source-map-loader'
-      },
-      {
-        enforce: 'pre',
-        test: /\.tsx?$/,
-        use: 'source-map-loader'
-      },
-      {
-        test: /\.tsx?$/,
-        loader: 'ts-loader',
-        exclude: /node_modules/,
+        test: /\.ts?$/,
+        // use: [
+        //   'babel-loader',
+        //   'ts-loader'
+        // ],
+        loader: 'babel-loader!ts-loader',
       }
     ]
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js']
+    extensions: ['.ts', '.js']
   },
-  devtool: 'inline-source-map',
+  // devtool: 'inline-source-map',
 }

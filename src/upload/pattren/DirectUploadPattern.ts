@@ -1,7 +1,7 @@
 import IUploadPattern from "./IUploadPattern";
 import Uploader from "../Uploader";
 import DirectTask from "../task/DirectTask";
-import debug from "../../util/Debug";
+import log from "../../util/Log";
 /**
  * 直接上传
  */
@@ -45,7 +45,7 @@ class DirectUploadPattern implements IUploadPattern {
         formData.append('token', token);
         formData.append('file', task.file);
 
-        debug.d(`创建formData对象`);
+        log.d(`创建formData对象`);
 
         return formData;
     }
@@ -95,11 +95,11 @@ class DirectUploadPattern implements IUploadPattern {
                     this.uploader.listener.onTaskSuccess(task);
                 }
                 else if (this.retryTask(task)) {
-                    debug.w(`${task.file.name}上传失败,准备开始重传`);
+                    log.w(`${task.file.name}上传失败,准备开始重传`);
                     this.uploader.listener.onTaskRetry(task);
                 }
                 else {
-                    debug.w(`${task.file.name}上传失败`);
+                    log.w(`${task.file.name}上传失败`);
                     task.error = xhr.response;
                     task.isSuccess = false;
                     task.isFinish = true;
@@ -120,7 +120,7 @@ class DirectUploadPattern implements IUploadPattern {
 
         let formData: FormData = this.createFormData(token);
         xhr.send(formData);
-        debug.d("发送ajax post 请求");
+        log.d("发送ajax post 请求");
     }
 
 
@@ -130,14 +130,14 @@ class DirectUploadPattern implements IUploadPattern {
      * @returns {boolean}
      */
     private retryTask(task: DirectTask): boolean {
-        debug.d("开始尝试重传");
+        log.d("开始尝试重传");
         //达到重试次数
         if (task.retry >= this.uploader.retry) {
-            debug.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
+            log.w(`${task.file.name}达到重传次数上限${this.uploader.retry},停止重传`);
             return false;
         }
         task.retry++;
-        debug.w(`${task.file.name}开始重传,当前重传次数${task.retry}`);
+        log.w(`${task.file.name}开始重传,当前重传次数${task.retry}`);
         this.upload(task);
         return true;
     }
