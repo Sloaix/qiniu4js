@@ -13,12 +13,11 @@ import {Scheme, Domain} from "./url/Domain";
 class UploaderBuilder {
     public static MAX_CHUNK_SIZE = 4 * 1024 * 1024;//分片最大值
     public static BLOCK_SIZE = UploaderBuilder.MAX_CHUNK_SIZE;//分块大小，只有大于这个数才需要分块
-    public static UPLOAD_URL = 'http://upload.qiniu.com';
     public static UPLOAD_DOMAIN = {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'};
 
     private _retry: number = 0;//最大重试次数
     private _domain: Domain = UploaderBuilder.UPLOAD_DOMAIN;//上传域名
-    private _scheme: Scheme = "http";//上传域名的 scheme
+    private _scheme: Scheme = window.location.protocol;//上传域名的 scheme
     private _size: number = 1024 * 1024;//分片大小,单位字节,上限4m,不能为0
     private _chunk: boolean = true;//分块上传
     private _auto: boolean = true;//自动上传,每次选择文件后
