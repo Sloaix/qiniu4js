@@ -1,5 +1,5 @@
 class Log {
-    public static _enable: boolean = true;
+    public static _enable: boolean = false;
 
     static get enable(): boolean {
         return this._enable;

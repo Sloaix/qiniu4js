@@ -10,9 +10,9 @@
         }
 
         #button {
-            height: 100%;
-            width: 100%;
-            font-size: 60px;
+            height: 80px;
+            width: 200px;
+            font-size: 30px;
         }
     </style>
 </head>
@@ -20,6 +20,7 @@
 <button id="button">
     上传文件
 </button>
+<div id="content"></div>
 <script src="http://qtestbucket.qiniudn.com/demo/CryptoJS.js"></script>
 <script src="dist/qiniu4js.js"></script>
 <script>
@@ -113,6 +114,11 @@
       return accessKey + ':' + safe64(encoded_signed) + ':' + encoded
     }
 
+    function write (content) {
+      var str = document.getElementById('content').innerHTML
+      document.getElementById('content').innerHTML = str + '\n' + content.toString()
+    }
+
     //qiniu test account
     var bucket = 'test'
     var ak = '7JlK6ZaNtH2R7ECXUF8u22mz6q7_Ka1lXwxli7C-'
@@ -136,12 +142,19 @@
           setToken(token)
         }).listener({
           onReady: function (tasks) {
+            write(tasks)
           }, onStart: function (tasks) {
+            write(tasks)
           }, onTaskProgress: function (task) {
+            write(task)
           }, onTaskSuccess: function (task) {
+            write(task)
           }, onTaskFail: function (task) {
+            write(task)
           }, onTaskRetry: function (task) {
+            write(task)
           }, onFinish: function (tasks) {
+            write(tasks)
           }
         }).build()
     }
