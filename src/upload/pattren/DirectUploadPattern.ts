@@ -109,6 +109,7 @@ class DirectUploadPattern implements IUploadPattern {
 
                 //所有任务都结束了
                 if (this.uploader.isTaskQueueFinish()) {
+                    log.d('上传队列结束');
                     //更改任务执行中标志
                     this.uploader.tasking = false;
 
@@ -120,7 +121,7 @@ class DirectUploadPattern implements IUploadPattern {
 
         let formData: FormData = this.createFormData(token);
         xhr.send(formData);
-        log.d("发送ajax post 请求");
+        log.d('发送ajax post 请求');
     }
 
 

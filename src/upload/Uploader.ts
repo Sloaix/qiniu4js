@@ -11,7 +11,6 @@ import SimpleUploadListener from "./hook/SimpleUploadListener";
 import DirectUploadPattern from "./pattren/DirectUploadPattern";
 import ChunkUploadPattern from "./pattren/ChunkUploadPattern";
 import "../util/Polyfill";
-import "babel-polyfill";
 
 class Uploader {
     private FILE_INPUT_EL_ID: string = 'qiniu4js-input';
@@ -150,13 +149,13 @@ class Uploader {
         for (let task of this.taskQueue) {
             for (let interceptor of this.interceptors) {
                 //拦截生效
-                if (interceptor.onIntercept(task)) {
+                if (interceptor.onIntercept(task, this.taskQueue)) {
                     interceptedTasks.push(task);
                     log.d("任务拦截器拦截了任务:");
                     log.d(task);
                 }
                 //打断生效
-                if (interceptor.onInterrupt(task)) {
+                if (interceptor.onInterrupt(task, this.taskQueue)) {
                     //将打断标志位设为true
                     isInterrupt = true;
                     break;

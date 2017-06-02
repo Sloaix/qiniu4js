@@ -35,33 +35,33 @@ module.exports = env => ({
   resolve: {
     extensions: ['.ts', '.js']
   },
-  devtool: 'inline-source-map',
+  devtool: 'cheap-source-map',
 })
 
 function getBabelOption (env) {
-  if (env == 'es5min') {
+  if (env === 'es5min') {
     return [
       'es2015',
       'stage-0'
     ]
-  } else if (env == 'es5') {
+  } else if (env === 'es5') {
     return [
       'es2015',
       'stage-0'
     ]
   }
-  else if (env == 'es6') {
+  else if (env === 'es6') {
     return []
   }
 }
 
 function getFileName (env) {
-  if (env == 'es5min') {
+  if (env === 'es5min') {
     return 'qiniu4js.min.js'
-  } else if (env == 'es5') {
+  } else if (env === 'es5') {
     return 'qiniu4js.js'
   }
-  else if (env == 'es6') {
+  else if (env === 'es6') {
     return 'qiniu4js.es.js'
   }
 }

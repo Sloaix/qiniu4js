@@ -3,7 +3,6 @@ import UploaderBuilder from "./UploaderBuilder";
 import Interceptor from "./interceptor/UploadInterceptor";
 import UploadListener from "./hook/UploadListener";
 import "../util/Polyfill";
-import "babel-polyfill";
 declare class Uploader {
     private FILE_INPUT_EL_ID;
     private _fileInputId;
