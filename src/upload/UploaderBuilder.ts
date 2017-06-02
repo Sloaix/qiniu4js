@@ -75,15 +75,15 @@ class UploaderBuilder {
         return this;
     }
 
-    // /**
-    //  * 设置分片大小
-    //  * @param size 分块大小,单位字节,默认4*1024*1024字节(4mb)
-    //  * @returns {UploaderBuilder}
-    //  */
-    // private size(size: number): UploaderBuilder {
-    //     this._size = Math.min(Math.max(size, 1), UploaderBuilder.MAX_CHUNK_SIZE);
-    //     return this;
-    // }
+    /**
+     * 设置分片大小
+     * @param size 分块大小,单位字节,默认4*1024*1024字节(4mb)
+     * @returns {UploaderBuilder}
+     */
+    public size(size: number): UploaderBuilder {
+        this._size = Math.min(Math.max(size, 1), UploaderBuilder.MAX_CHUNK_SIZE);
+        return this;
+    }
 
     /**
      * 选择文件后,是否自动上传
