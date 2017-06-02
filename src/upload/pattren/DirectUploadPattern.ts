@@ -33,7 +33,7 @@ class DirectUploadPattern implements IUploadPattern {
      * @param token
      * @returns {FormData}
      */
-    private createFormData(token: String): FormData {
+    private createFormData(token: string): FormData {
         let task: DirectTask = this.task;
         let formData: FormData = new FormData();
 

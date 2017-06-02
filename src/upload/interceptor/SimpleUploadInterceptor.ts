@@ -1,13 +1,13 @@
-import Task from "../task/BaseTask";
+import BaseTask from "../task/BaseTask";
 import UploadInterceptor from "./UploadInterceptor";
 
 class SimpleUploadInterceptor implements UploadInterceptor {
 
-    onIntercept(task: Task): boolean {
+    onIntercept(task: BaseTask): boolean {
         return false;
     }
 
-    onInterrupt(task: Task): boolean {
+    onInterrupt(task: BaseTask): boolean {
         return false;
     }
 

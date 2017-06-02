@@ -8,7 +8,7 @@ interface IUploadPattern {
      * 上传任务
      * @param task
      */
-    upload(task: BaseTask);
+    upload(task: BaseTask): void;
 }
 
 export  default IUploadPattern;

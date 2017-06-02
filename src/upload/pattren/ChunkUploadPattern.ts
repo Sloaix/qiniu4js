@@ -29,7 +29,7 @@ class ChunkUploadPattern implements IUploadPattern {
 
     private uploadBlock(token: string) {
         debug.d(`准备开始上传块`);
-        let chain: Promise = Promise.resolve();
+        let chain: Promise<any> = Promise.resolve();
         debug.d(`共${this.task.blocks.length}块等待上传`);
         debug.d(`共${this.task.totalChunkCount}分片等待上传`);
 
@@ -140,7 +140,7 @@ class ChunkUploadPattern implements IUploadPattern {
             //构建所有数据块最后一个数据片上传后得到的<ctx>的组合成的列表字符串
             let ctxListString = '';
 
-            for (let block: Block of this.task.blocks) {
+            for (let block of this.task.blocks) {
                 let lastChunk = block.chunks[block.chunks.length - 1];
                 ctxListString += lastChunk.ctx + ',';
             }

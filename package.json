@@ -17,11 +17,17 @@
     "url": "https://github.com/lsxiao/qiniu4js/issues"
   },
   "devDependencies": {
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.5.1",
     "del": "^2.2.2",
     "rollup": "^0.36.3",
     "rollup-plugin-babel": "^2.7.1",
     "rollup-plugin-typescript": "^0.8.1",
-    "typescript": "^2.0.3"
+    "source-map-loader": "^0.2.1",
+    "ts-loader": "^2.1.0",
+    "typescript": "^2.3.4",
+    "webpack": "^2.6.1"
   },
   "scripts": {
     "build": "node tools/build"

@@ -104,7 +104,7 @@ class Uploader {
         //文件类型
         if (this.accept && this.accept.length != 0) {
             let acceptValue: string = '';
-            for (let value: string of this.accept) {
+            for (let value of this.accept) {
                 acceptValue += value;
                 acceptValue += ',';
             }
@@ -154,12 +154,12 @@ class Uploader {
         this.generateTask();
 
         //是否中断任务
-        let isInterrupt: Boolean = false;
+        let isInterrupt: boolean = false;
         let interceptedTasks: BaseTask[] = [];
 
         //任务拦截器过滤
-        for (let task: BaseTask of this.taskQueue) {
-            for (let interceptor: Interceptor of this.interceptors) {
+        for (let task of this.taskQueue) {
+            for (let interceptor of this.interceptors) {
                 //拦截生效
                 if (interceptor.onIntercept(task)) {
                     interceptedTasks.push(task);
@@ -251,11 +251,11 @@ class Uploader {
     /**
      * 处理图片-缩放-质量压缩
      */
-    private handleImages(): Promise {
-        let promises: Promise<Blob>[] = [];
+    private handleImages(): Promise<any> {
+        let promises: Promise<any>[] = [];
 
         if (this.compress != 1 || this.scale[0] != 0 || this.scale[1] != 0) {
-            for (let task: BaseTask of this.taskQueue) {
+            for (let task of this.taskQueue) {
                 if (!task.file.type.match('image.*')) {
                     continue;
                 }
@@ -327,7 +327,7 @@ class Uploader {
         if (!this._tokenFunc) {
             throw new Error('你必须提供一个获取Token的回调函数');
         }
-        if (!this.scale || !this.scale instanceof Array || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
+        if (!this.scale || !(this.scale instanceof Array) || this.scale.length != 2 || this.scale[0] < 0 || this.scale[1] < 0) {
             throw new Error('scale必须是长度为2的number类型的数组,scale[0]为宽度，scale[1]为长度,必须大于等于0');
         }
         debug.d("构建参数检查完毕");
@@ -350,7 +350,7 @@ class Uploader {
         this.listener.onStart(this.taskQueue);
 
         //遍历任务队列
-        for (let task: BaseTask of this.taskQueue) {
+        for (let task of this.taskQueue) {
             debug.d(`上传文件名：${task.file.name}`);
             debug.d(`上传文件大小：${task.file.size}字节，${task.file.size / 1024} kb，${task.file.size / 1024 / 1024} mb`);
             //根据任务的类型调用不同的上传模式进行上传
@@ -375,7 +375,7 @@ class Uploader {
      * @returns {boolean}
      */
     public isTaskQueueFinish() {
-        for (let task: BaseTask of this.taskQueue) {
+        for (let task of this.taskQueue) {
             if (!task.isFinish) {
                 return false;
             }

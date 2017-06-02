@@ -3,13 +3,13 @@
  */
 abstract class BaseTask {
     protected _file: File;
-    protected _retry: Number = 0;//已重试次数
+    protected _retry: number = 0;//已重试次数
     protected _createDate: Date;//创建时间
     protected _startDate: Date;//开始时间
     protected _endDate: Date;//结束时间
-    protected _key: String;//key文件名
-    protected _progress: Number = 0;//任务进度,最大100
-    protected _isSuccess: Boolean = false;//是否上传成功
+    protected _key: string;//key文件名
+    protected _progress: number = 0;//任务进度,最大100
+    protected _isSuccess: boolean = false;//是否上传成功
     protected _isFinish: boolean = false;//是否结束
     protected _result: Object;
     protected _error: any;
@@ -27,11 +27,11 @@ abstract class BaseTask {
         this._file = file;
     }
 
-    get retry(): Number {
+    get retry(): number {
         return this._retry;
     }
 
-    set retry(value: Number) {
+    set retry(value: number) {
         this._retry = value;
     }
 
@@ -59,19 +59,19 @@ abstract class BaseTask {
         this._endDate = value;
     }
 
-    get isSuccess(): Boolean {
+    get isSuccess(): boolean {
         return this._isSuccess;
     }
 
-    set isSuccess(value: Boolean) {
+    set isSuccess(value: boolean) {
         this._isSuccess = value;
     }
 
-    get progress(): Number {
+    get progress(): number {
         return this._progress;
     }
 
-    set progress(value: Number) {
+    set progress(value: number) {
         this._progress = Math.min(Math.max(0, value), 100);
     }
 
@@ -93,11 +93,11 @@ abstract class BaseTask {
     }
 
 
-    get key(): String {
+    get key(): string {
         return this._key;
     }
 
-    set key(value: String) {
+    set key(value: string) {
         this._key = value;
     }
 
