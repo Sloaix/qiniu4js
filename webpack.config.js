@@ -20,7 +20,10 @@ module.exports = env => ({
         exclude: '/node_modules',
         use: [
           {
-            loader: 'babel-loader'
+            loader: 'babel-loader',
+            options: {
+              presets: getBabelOption(env)
+            }
           },
           {
             loader: 'ts-loader'
@@ -34,6 +37,23 @@ module.exports = env => ({
   },
   devtool: 'inline-source-map',
 })
+
+function getBabelOption (env) {
+  if (env == 'es5min') {
+    return [
+      'es2015',
+      'stage-0'
+    ]
+  } else if (env == 'es5') {
+    return [
+      'es2015',
+      'stage-0'
+    ]
+  }
+  else if (env == 'es6') {
+    return []
+  }
+}
 
 function getFileName (env) {
   if (env == 'es5min') {

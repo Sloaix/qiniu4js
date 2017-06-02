@@ -17,7 +17,7 @@ class UploaderBuilder {
 
     private _retry: number = 0;//最大重试次数
     private _domain: Domain = UploaderBuilder.UPLOAD_DOMAIN;//上传域名
-    private _scheme: Scheme = window.location.protocol;//上传域名的 scheme
+    private _scheme: Scheme = null;//上传域名的 scheme
     private _size: number = 1024 * 1024;//分片大小,单位字节,上限4m,不能为0
     private _chunk: boolean = true;//分块上传
     private _auto: boolean = true;//自动上传,每次选择文件后
@@ -292,7 +292,7 @@ class UploaderBuilder {
 
     get getDomain(): string {
         let domain: any = this._domain;
-        if (domain == null) {
+        if (!domain) {
             domain = UploaderBuilder.UPLOAD_DOMAIN;
         }
         if (typeof domain != "string") {

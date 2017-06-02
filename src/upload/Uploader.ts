@@ -11,6 +11,7 @@ import SimpleUploadListener from "./hook/SimpleUploadListener";
 import DirectUploadPattern from "./pattren/DirectUploadPattern";
 import ChunkUploadPattern from "./pattren/ChunkUploadPattern";
 import "../util/Polyfill";
+import "babel-polyfill";
 
 class Uploader {
     private FILE_INPUT_EL_ID: string = 'qiniu4js-input';

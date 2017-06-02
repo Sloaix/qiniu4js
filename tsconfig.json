@@ -2,17 +2,22 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "sourceMap": true,
-    "noImplicitAny": true,
-    "module": "commonjs",
+    "module": "es6",
     "target": "es6",
+    //在表达式和声明上有隐含的any类型时报错。
+    //    "noImplicitAny": true,
+    //不允许不一致包装引用相同的文件。
     "forceConsistentCasingInFileNames": true,
+    //不是函数的所有返回路径都有返回值时报错。
     "noImplicitReturns": true,
-    "noImplicitThis": true,
+    //当this表达式的值为any类型的时候，生成一个错误。
+    //    "noImplicitThis": true,
+    //阻止--noImplicitAny对缺少索引签名的索引对象报错。查看issue #1232了解详情。
     "suppressImplicitAnyIndexErrors": true,
-    "allowSyntheticDefaultImports": true,
+    //若有未使用的局部变量则抛错。
     "noUnusedLocals": true,
     "lib": [
-      "es6",
+      "es2016",
       "dom"
     ],
     "allowJs": true
