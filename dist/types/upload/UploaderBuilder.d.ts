@@ -32,6 +32,13 @@ declare class UploaderBuilder {
     private _tokenShare;
     private _interceptors;
     private _isDebug;
+    private _files;
+    /**
+     * 设置上传的文件
+     * @param files
+     * @returns {UploaderBuilder}
+     */
+    files(files: File[] | FileList): UploaderBuilder;
     /**
      * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
      * @param domain
@@ -160,6 +167,7 @@ declare class UploaderBuilder {
     readonly getChunk: boolean;
     readonly getIsDebug: boolean;
     readonly getInterceptors: Interceptor[];
+    readonly getFiles: File[];
     readonly getDomain: string;
     build(): Uploader;
 }

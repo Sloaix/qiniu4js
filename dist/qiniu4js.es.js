@@ -154,12 +154,13 @@ class Uploader {
         this._tasking = false; //任务执行中
         this._scale = []; //缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
         this._saveKey = false;
+        this._files = []; //自定义上传文件列表
         /**
          * 处理文件
          */
         this.handleFiles = () => {
-            //如果没有选中文件就返回
-            if (this.fileInput.files.length == 0) {
+            //没有需要处理的文件
+            if (this.hasFiles()) {
                 return;
             }
             //生成task
@@ -249,6 +250,7 @@ class Uploader {
         this._listener = Object.assign(new __WEBPACK_IMPORTED_MODULE_5__hook_SimpleUploadListener__["a" /* default */](), builder.getListener);
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
+        this._files = builder.getFiles;
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;
         __WEBPACK_IMPORTED_MODULE_4__util_Log__["a" /* default */].enable = builder.getIsDebug;
         this.validateOptions();
@@ -258,7 +260,19 @@ class Uploader {
      * 初始化操作
      */
     init() {
-        this.initFileInputEl();
+        if (this.isFilesProvidedByUser()) {
+            //由于直接提供了文件，跳过对input的处理
+            this.handleFiles();
+        } else {
+            this.initFileInputEl();
+        }
+    }
+    /**
+     * 上传文件是否由用户提供，与input选取的方式区别
+     * @returns {boolean}
+     */
+    isFilesProvidedByUser() {
+        return this._files != null && this._files.length != 0;
     }
     /**
      * 初始化file input element
@@ -310,6 +324,24 @@ class Uploader {
         __WEBPACK_IMPORTED_MODULE_4__util_Log__["a" /* default */].d("uploader 重置完毕");
     }
     /**
+     * 获取待上传的文件
+     * @returns {any}
+     */
+    getFiles() {
+        //如果没有选中文件就返回
+        if (this.fileInput && this.fileInput.files.length != 0) {
+            return this.fileInput.files;
+        } else {
+            return this._files;
+        }
+    }
+    /**
+     * 是否存在需要上传的文件
+     */
+    hasFiles() {
+        return this.getFiles().length != 0;
+    }
+    /**
      * 是否是分块任务
      * @param task
      * @returns {boolean}
@@ -330,10 +362,9 @@ class Uploader {
      */
     generateTask() {
         this.resetUploader();
-        let files = this.fileInput.files;
         //遍历files 创建上传任务
-        for (let i = 0; i < this.fileInput.files.length; i++) {
-            let file = files[i];
+        for (let i = 0; i < this.getFiles().length; i++) {
+            let file = this.getFiles()[i];
             let task;
             //只有在开启分块上传，并且文件大小大于4mb的时候才进行分块上传
             if (this.chunk && file.size > __WEBPACK_IMPORTED_MODULE_3__UploaderBuilder__["a" /* default */].BLOCK_SIZE) {
@@ -419,7 +450,7 @@ class Uploader {
      */
     start() {
         __WEBPACK_IMPORTED_MODULE_4__util_Log__["a" /* default */].d(`上传任务遍历开始`);
-        if (this.fileInput.files.length == 0) {
+        if (!this.hasFiles()) {
             throw new Error('没有选中的文件，无法开始上传');
         }
         if (this.tasking) {
@@ -587,6 +618,21 @@ class UploaderBuilder {
         this._tokenShare = true; //分享token,如果为false,每一次HTTP请求都需要新获取Token
         this._interceptors = []; //任务拦截器
         this._isDebug = false; //
+        this._files = []; //自定义上传文件列表
+    }
+    /**
+     * 设置上传的文件
+     * @param files
+     * @returns {UploaderBuilder}
+     */
+    files(files) {
+        if (files == null || files.length == 0) {
+            return this;
+        }
+        for (let i = 0; i < files.length; i++) {
+            this._files.push(files[i]);
+        }
+        return this;
     }
     /**
      * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
@@ -808,6 +854,9 @@ class UploaderBuilder {
     }
     get getInterceptors() {
         return this._interceptors;
+    }
+    get getFiles() {
+        return this._files;
     }
     get getDomain() {
         let domain = this._domain;

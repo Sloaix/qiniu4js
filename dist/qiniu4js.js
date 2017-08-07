@@ -212,12 +212,13 @@ var Uploader = function () {
         this._tasking = false; //任务执行中
         this._scale = []; //缩放大小,限定高度等比缩放[h:200,w:0],限定宽度等比缩放[h:0,w:100],限定长宽[h:200,w:100]
         this._saveKey = false;
+        this._files = []; //自定义上传文件列表
         /**
          * 处理文件
          */
         this.handleFiles = function () {
-            //如果没有选中文件就返回
-            if (_this2.fileInput.files.length == 0) {
+            //没有需要处理的文件
+            if (_this2.hasFiles()) {
                 return;
             }
             //生成task
@@ -371,6 +372,7 @@ var Uploader = function () {
         this._listener = Object.assign(new _SimpleUploadListener2.default(), builder.getListener);
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
+        this._files = builder.getFiles;
         this._fileInputId = this.FILE_INPUT_EL_ID + "_" + new Date().getTime();
         _Log2.default.enable = builder.getIsDebug;
         this.validateOptions();
@@ -384,7 +386,22 @@ var Uploader = function () {
     _createClass(Uploader, [{
         key: "init",
         value: function init() {
-            this.initFileInputEl();
+            if (this.isFilesProvidedByUser()) {
+                //由于直接提供了文件，跳过对input的处理
+                this.handleFiles();
+            } else {
+                this.initFileInputEl();
+            }
+        }
+        /**
+         * 上传文件是否由用户提供，与input选取的方式区别
+         * @returns {boolean}
+         */
+
+    }, {
+        key: "isFilesProvidedByUser",
+        value: function isFilesProvidedByUser() {
+            return this._files != null && this._files.length != 0;
         }
         /**
          * 初始化file input element
@@ -464,6 +481,30 @@ var Uploader = function () {
             _Log2.default.d("uploader 重置完毕");
         }
         /**
+         * 获取待上传的文件
+         * @returns {any}
+         */
+
+    }, {
+        key: "getFiles",
+        value: function getFiles() {
+            //如果没有选中文件就返回
+            if (this.fileInput && this.fileInput.files.length != 0) {
+                return this.fileInput.files;
+            } else {
+                return this._files;
+            }
+        }
+        /**
+         * 是否存在需要上传的文件
+         */
+
+    }, {
+        key: "hasFiles",
+        value: function hasFiles() {
+            return this.getFiles().length != 0;
+        }
+        /**
          * 是否是分块任务
          * @param task
          * @returns {boolean}
@@ -477,10 +518,9 @@ var Uploader = function () {
          */
         value: function generateTask() {
             this.resetUploader();
-            var files = this.fileInput.files;
             //遍历files 创建上传任务
-            for (var i = 0; i < this.fileInput.files.length; i++) {
-                var file = files[i];
+            for (var i = 0; i < this.getFiles().length; i++) {
+                var file = this.getFiles()[i];
                 var task = void 0;
                 //只有在开启分块上传，并且文件大小大于4mb的时候才进行分块上传
                 if (this.chunk && file.size > _UploaderBuilder2.default.BLOCK_SIZE) {
@@ -606,7 +646,7 @@ var Uploader = function () {
         key: "start",
         value: function start() {
             _Log2.default.d("\u4E0A\u4F20\u4EFB\u52A1\u904D\u5386\u5F00\u59CB");
-            if (this.fileInput.files.length == 0) {
+            if (!this.hasFiles()) {
                 throw new Error('没有选中的文件，无法开始上传');
             }
             if (this.tasking) {
@@ -905,15 +945,33 @@ var UploaderBuilder = function () {
         this._tokenShare = true; //分享token,如果为false,每一次HTTP请求都需要新获取Token
         this._interceptors = []; //任务拦截器
         this._isDebug = false; //
+        this._files = []; //自定义上传文件列表
     }
     /**
-     * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
-     * @param domain
+     * 设置上传的文件
+     * @param files
      * @returns {UploaderBuilder}
      */
 
 
     _createClass(UploaderBuilder, [{
+        key: "files",
+        value: function files(_files) {
+            if (_files == null || _files.length == 0) {
+                return this;
+            }
+            for (var i = 0; i < _files.length; i++) {
+                this._files.push(_files[i]);
+            }
+            return this;
+        }
+        /**
+         * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
+         * @param domain
+         * @returns {UploaderBuilder}
+         */
+
+    }, {
         key: "domain",
         value: function domain(_domain) {
             this._domain = _domain;
@@ -1220,6 +1278,11 @@ var UploaderBuilder = function () {
         key: "getInterceptors",
         get: function get() {
             return this._interceptors;
+        }
+    }, {
+        key: "getFiles",
+        get: function get() {
+            return this._files;
         }
     }, {
         key: "getDomain",

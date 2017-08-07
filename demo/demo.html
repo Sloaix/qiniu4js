@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        div.container {
+            height: 100%;
+            align-items: center;
+            display: flex;
+            justify-content: center;
+        }
+
+        div.card {
+            width: 500px;
+            background: #eeeeee;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+
+        <div class="w3-container">
+            <h2>Mixed: Mobile, Tablets and Laptops</h2>
+            <p>This example will produce a three column layout with a 25%/58.34%/16.66% (l3, l7, l2) split on large
+                screens, 50%/25%/25% (m6, m3, m3) split on medium screens and a 33.3%/33.3%/33.3% (s4, s4, s4)split on
+                small screens:</p>
+        </div>
+
+        <div class="w3-row">
+            <div class="w3-col l3 m6 s4 w3-green w3-center"><p>l3 m6 s4</p></div>
+            <div class="w3-col l7 m3 s4 w3-dark-grey w3-center"><p>l7 m3 s4</p></div>
+            <div class="w3-col l2 m3 s4 w3-red w3-center"><p>l2 m3 s4</p></div>
+        </div>
+
+        <div class="w3-row w3-container">
+            <p>Inside a container:</p>
+            <div class="w3-row">
+                <div class="w3-col l3 m6 s4 w3-green w3-center"><p>l3 m6 s4</p></div>
+                <div class="w3-col l7 m3 s4 w3-dark-grey w3-center"><p>l7 m3 s4</p></div>
+                <div class="w3-col l2 m3 s4 w3-red w3-center"><p>l2 m3 s4</p></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="http://qtestbucket.qiniudn.com/demo/CryptoJS.js"></script>
+<script src="../dist/qiniu4js.js"></script>
+</body>
+</html>

@@ -33,7 +33,24 @@ class UploaderBuilder {
     private _tokenShare: boolean = true;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[] = [];//任务拦截器
     private _isDebug: boolean = false;//
+    private _files: File[] = [];//自定义上传文件列表
 
+    /**
+     * 设置上传的文件
+     * @param files
+     * @returns {UploaderBuilder}
+     */
+    public files(files: File[] | FileList): UploaderBuilder {
+        if (files == null || files.length == 0) {
+            return this;
+        }
+
+        for (let i: number = 0; i < files.length; i++) {
+            this._files.push(files[i])
+        }
+
+        return this;
+    }
 
     /**
      * 设置上传的域名,默认是 {http: 'http://upload.qiniu.com', https: 'https://up.qbox.me'}
@@ -288,6 +305,10 @@ class UploaderBuilder {
 
     get getInterceptors(): Interceptor[] {
         return this._interceptors;
+    }
+
+    get getFiles(): File[] {
+        return this._files;
     }
 
     get getDomain(): string {

@@ -36,6 +36,7 @@ class Uploader {
     private _tokenShare: boolean;//分享token,如果为false,每一次HTTP请求都需要新获取Token
     private _interceptors: Interceptor[];//任务拦截器
     private _domain: string;//上传域名
+    private _files: File[] = [];//自定义上传文件列表
 
     constructor(builder: UploaderBuilder) {
         this._retry = builder.getRetry;
@@ -54,6 +55,7 @@ class Uploader {
         this._listener = Object.assign(new SimpleUploadListener(), builder.getListener);
         this._interceptors = builder.getInterceptors;
         this._domain = builder.getDomain;
+        this._files = builder.getFiles;
         this._fileInputId = `${this.FILE_INPUT_EL_ID}_${new Date().getTime()}`;
         log.enable = builder.getIsDebug;
 
@@ -66,7 +68,21 @@ class Uploader {
      * 初始化操作
      */
     private init(): void {
-        this.initFileInputEl();
+        if (this.isFilesProvidedByUser()) {
+            //由于直接提供了文件，跳过对input的处理
+            this.handleFiles()
+        }
+        else {
+            this.initFileInputEl();
+        }
+    }
+
+    /**
+     * 上传文件是否由用户提供，与input选取的方式区别
+     * @returns {boolean}
+     */
+    private isFilesProvidedByUser(): boolean {
+        return this._files != null && this._files.length != 0
     }
 
     /**
@@ -130,11 +146,32 @@ class Uploader {
     }
 
     /**
+     * 获取待上传的文件
+     * @returns {any}
+     */
+    private getFiles(): File[] | FileList {
+        //如果没有选中文件就返回
+        if (this.fileInput && this.fileInput.files.length != 0) {
+            return this.fileInput.files;
+        }
+        else {
+            return this._files;
+        }
+    }
+
+    /**
+     * 是否存在需要上传的文件
+     */
+    private hasFiles() {
+        return this.getFiles().length != 0
+    }
+
+    /**
      * 处理文件
      */
     private handleFiles = () => {
-        //如果没有选中文件就返回
-        if (this.fileInput.files.length == 0) {
+        //没有需要处理的文件
+        if (this.hasFiles()) {
             return;
         }
 
@@ -215,11 +252,10 @@ class Uploader {
     private generateTask() {
         this.resetUploader();
 
-        let files: FileList = this.fileInput.files;
 
         //遍历files 创建上传任务
-        for (let i: number = 0; i < this.fileInput.files.length; i++) {
-            let file: File = files[i];
+        for (let i: number = 0; i < this.getFiles().length; i++) {
+            let file: File = this.getFiles()[i];
 
             let task: BaseTask;
             //只有在开启分块上传，并且文件大小大于4mb的时候才进行分块上传
@@ -327,7 +363,7 @@ class Uploader {
     public start(): void {
         log.d(`上传任务遍历开始`);
 
-        if (this.fileInput.files.length == 0) {
+        if (!this.hasFiles()) {
             throw new Error('没有选中的文件，无法开始上传');
         }
 

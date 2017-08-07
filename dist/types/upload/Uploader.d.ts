@@ -26,11 +26,17 @@ declare class Uploader {
     private _tokenShare;
     private _interceptors;
     private _domain;
+    private _files;
     constructor(builder: UploaderBuilder);
     /**
      * 初始化操作
      */
     private init();
+    /**
+     * 上传文件是否由用户提供，与input选取的方式区别
+     * @returns {boolean}
+     */
+    private isFilesProvidedByUser();
     /**
      * 初始化file input element
      */
@@ -39,6 +45,15 @@ declare class Uploader {
      * 上传完成或者失败后,对本次上传任务进行清扫
      */
     private resetUploader();
+    /**
+     * 获取待上传的文件
+     * @returns {any}
+     */
+    private getFiles();
+    /**
+     * 是否存在需要上传的文件
+     */
+    private hasFiles();
     /**
      * 处理文件
      */
